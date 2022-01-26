@@ -1,0 +1,549 @@
+{
+	"info": {
+		"_postman_id": "2a1e6bab-1f95-487f-87fd-1f25564f6bf8",
+		"name": "Devialet",
+		"description": "View full documentation at [Devialet IP Control - R1](https://help.devialet.com/hc/en-us/article_attachments/4415236063506/Devialet_IP_Control_-_R1.pdf)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "General information",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true,
+				"disabledSystemHeaders": {
+					"user-agent": true,
+					"accept": true,
+					"accept-encoding": true,
+					"connection": true,
+					"content-length": true
+				}
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/devices/{{systemID}}",
+					"protocol": "http",
+					"host": [
+						"{{ipControlAddress}}"
+					],
+					"path": [
+						"ipcontrol",
+						"v1",
+						"devices",
+						"{{systemID}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "System general information",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/systems/{{systemID}}",
+					"protocol": "http",
+					"host": [
+						"{{ipControlAddress}}"
+					],
+					"path": [
+						"ipcontrol",
+						"v1",
+						"systems",
+						"{{systemID}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get volume",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/systems/{{systemID}}/sources/{{sourceID}}/soundControl/volume",
+					"protocol": "http",
+					"host": [
+						"{{ipControlAddress}}"
+					],
+					"path": [
+						"ipcontrol",
+						"v1",
+						"systems",
+						"{{systemID}}",
+						"sources",
+						"{{sourceID}}",
+						"soundControl",
+						"volume"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Set volume",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"systemVolume\": 35\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/systems/{{systemID}}/sources/{{sourceID}}/soundControl/volume",
+					"protocol": "http",
+					"host": [
+						"{{ipControlAddress}}"
+					],
+					"path": [
+						"ipcontrol",
+						"v1",
+						"systems",
+						"{{systemID}}",
+						"sources",
+						"{{sourceID}}",
+						"soundControl",
+						"volume"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Volume up",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/systems/{{systemID}}/sources/{{sourceID}}/soundControl/volumeUp",
+					"protocol": "http",
+					"host": [
+						"{{ipControlAddress}}"
+					],
+					"path": [
+						"ipcontrol",
+						"v1",
+						"systems",
+						"{{systemID}}",
+						"sources",
+						"{{sourceID}}",
+						"soundControl",
+						"volumeUp"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Volume down",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/systems/{{systemID}}/sources/{{sourceID}}/soundControl/volumeDown",
+					"protocol": "http",
+					"host": [
+						"{{ipControlAddress}}"
+					],
+					"path": [
+						"ipcontrol",
+						"v1",
+						"systems",
+						"{{systemID}}",
+						"sources",
+						"{{sourceID}}",
+						"soundControl",
+						"volumeDown"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Power off",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/systems/{{systemID}}/powerOff",
+					"protocol": "http",
+					"host": [
+						"{{ipControlAddress}}"
+					],
+					"path": [
+						"ipcontrol",
+						"v1",
+						"systems",
+						"{{systemID}}",
+						"powerOff"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Restart",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/systems/{{systemID}}/restart",
+					"protocol": "http",
+					"host": [
+						"{{ipControlAddress}}"
+					],
+					"path": [
+						"ipcontrol",
+						"v1",
+						"systems",
+						"{{systemID}}",
+						"restart"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get nightmode - From DOS 2.16.x",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/systems/{{systemID}}/settings/audio/nightMode",
+					"protocol": "http",
+					"host": [
+						"{{ipControlAddress}}"
+					],
+					"path": [
+						"ipcontrol",
+						"v1",
+						"systems",
+						"{{systemID}}",
+						"settings",
+						"audio",
+						"nightMode"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get sources",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/groups/{{groupID}}/sources",
+					"protocol": "http",
+					"host": [
+						"{{ipControlAddress}}"
+					],
+					"path": [
+						"ipcontrol",
+						"v1",
+						"groups",
+						"{{groupID}}",
+						"sources"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get source state",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/groups/{{groupID}}/sources/{{sourceID}}",
+					"protocol": "http",
+					"host": [
+						"{{ipControlAddress}}"
+					],
+					"path": [
+						"ipcontrol",
+						"v1",
+						"groups",
+						"{{groupID}}",
+						"sources",
+						"{{sourceID}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Select source",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/groups/{{groupID}}/sources/07dd7408-e7da-405f-b2c7-f275681b2e01/playback/play",
+					"protocol": "http",
+					"host": [
+						"{{ipControlAddress}}"
+					],
+					"path": [
+						"ipcontrol",
+						"v1",
+						"groups",
+						"{{groupID}}",
+						"sources",
+						"07dd7408-e7da-405f-b2c7-f275681b2e01",
+						"playback",
+						"play"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Play",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/groups/{{groupID}}/sources/{{sourceID}}/playback/play",
+					"protocol": "http",
+					"host": [
+						"{{ipControlAddress}}"
+					],
+					"path": [
+						"ipcontrol",
+						"v1",
+						"groups",
+						"{{groupID}}",
+						"sources",
+						"{{sourceID}}",
+						"playback",
+						"play"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Pause",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/groups/{{groupID}}/sources/{{sourceID}}/playback/pause",
+					"protocol": "http",
+					"host": [
+						"{{ipControlAddress}}"
+					],
+					"path": [
+						"ipcontrol",
+						"v1",
+						"groups",
+						"{{groupID}}",
+						"sources",
+						"{{sourceID}}",
+						"playback",
+						"pause"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Next",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/groups/{{groupID}}/sources/{{sourceID}}/playback/next",
+					"protocol": "http",
+					"host": [
+						"{{ipControlAddress}}"
+					],
+					"path": [
+						"ipcontrol",
+						"v1",
+						"groups",
+						"{{groupID}}",
+						"sources",
+						"{{sourceID}}",
+						"playback",
+						"next"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Previous",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/groups/{{groupID}}/sources/{{sourceID}}/playback/previous",
+					"protocol": "http",
+					"host": [
+						"{{ipControlAddress}}"
+					],
+					"path": [
+						"ipcontrol",
+						"v1",
+						"groups",
+						"{{groupID}}",
+						"sources",
+						"{{sourceID}}",
+						"playback",
+						"previous"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Seek - Not supported yet?",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"seek\": \"Not supported yet?\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/groups/{{groupID}}/sources/{{sourceID}}/playback/seek",
+					"protocol": "http",
+					"host": [
+						"{{ipControlAddress}}"
+					],
+					"path": [
+						"ipcontrol",
+						"v1",
+						"groups",
+						"{{groupID}}",
+						"sources",
+						"{{sourceID}}",
+						"playback",
+						"seek"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Mute",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/groups/{{groupID}}/sources/{{sourceID}}/playback/mute",
+					"protocol": "http",
+					"host": [
+						"{{ipControlAddress}}"
+					],
+					"path": [
+						"ipcontrol",
+						"v1",
+						"groups",
+						"{{groupID}}",
+						"sources",
+						"{{sourceID}}",
+						"playback",
+						"mute"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Unmute",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/groups/{{groupID}}/sources/{{sourceID}}/playback/unmute",
+					"protocol": "http",
+					"host": [
+						"{{ipControlAddress}}"
+					],
+					"path": [
+						"ipcontrol",
+						"v1",
+						"groups",
+						"{{groupID}}",
+						"sources",
+						"{{sourceID}}",
+						"playback",
+						"unmute"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "ipControlAddress",
+			"value": "192.168.1.138",
+			"type": "string"
+		},
+		{
+			"key": "deviceID",
+			"value": "current",
+			"type": "string"
+		},
+		{
+			"key": "systemID",
+			"value": "current",
+			"type": "string"
+		},
+		{
+			"key": "sourceID",
+			"value": "current",
+			"type": "string"
+		},
+		{
+			"key": "groupID",
+			"value": "current",
+			"type": "string"
+		}
+	]
+}
