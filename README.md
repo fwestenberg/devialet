@@ -1,2 +1,2 @@
 # Devialet
-Devialet API python implementation
+Devialet API Python implementation
