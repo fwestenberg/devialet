@@ -47,6 +47,50 @@
 			"response": []
 		},
 		{
+			"name": "Power off > DOS 2.16.x",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/devices/{{deviceID}}/powerOff",
+					"protocol": "http",
+					"host": [
+						"{{ipControlAddress}}"
+					],
+					"path": [
+						"ipcontrol",
+						"v1",
+						"devices",
+						"{{deviceID}}",
+						"powerOff"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Restart > DOS 2.16.x",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/devices/{{deviceID}}/restart",
+					"protocol": "http",
+					"host": [
+						"{{ipControlAddress}}"
+					],
+					"path": [
+						"ipcontrol",
+						"v1",
+						"devices",
+						"{{deviceID}}",
+						"restart"
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "System general information",
 			"request": {
 				"method": "GET",
@@ -68,7 +112,7 @@
 			"response": []
 		},
 		{
-			"name": "Get volume",
+			"name": "Volume",
 			"request": {
 				"method": "GET",
 				"header": [],
@@ -93,7 +137,7 @@
 			"response": []
 		},
 		{
-			"name": "Set volume",
+			"name": "Volume",
 			"request": {
 				"method": "POST",
 				"header": [],
@@ -177,51 +221,7 @@
 			"response": []
 		},
 		{
-			"name": "Power off",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"url": {
-					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/systems/{{systemID}}/powerOff",
-					"protocol": "http",
-					"host": [
-						"{{ipControlAddress}}"
-					],
-					"path": [
-						"ipcontrol",
-						"v1",
-						"systems",
-						"{{systemID}}",
-						"powerOff"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Restart",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"url": {
-					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/systems/{{systemID}}/restart",
-					"protocol": "http",
-					"host": [
-						"{{ipControlAddress}}"
-					],
-					"path": [
-						"ipcontrol",
-						"v1",
-						"systems",
-						"{{systemID}}",
-						"restart"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Get nightmode - From DOS 2.16.x",
+			"name": "Nightmode > DOS 2.16.x",
 			"request": {
 				"method": "GET",
 				"header": [],
@@ -245,7 +245,7 @@
 			"response": []
 		},
 		{
-			"name": "Get sources",
+			"name": "Sources",
 			"request": {
 				"method": "GET",
 				"header": [],
@@ -267,7 +267,7 @@
 			"response": []
 		},
 		{
-			"name": "Get source state",
+			"name": "Source state",
 			"request": {
 				"method": "GET",
 				"header": [],
@@ -284,6 +284,31 @@
 						"{{groupID}}",
 						"sources",
 						"{{sourceID}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Current position - not supported yet?",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://{{ipControlAddress}}/ipcontrol/v1/groups/{{groupID}}/sources/{{sourceID}}/playback/position",
+					"protocol": "http",
+					"host": [
+						"{{ipControlAddress}}"
+					],
+					"path": [
+						"ipcontrol",
+						"v1",
+						"groups",
+						"{{groupID}}",
+						"sources",
+						"{{sourceID}}",
+						"playback",
+						"position"
 					]
 				}
 			},
@@ -421,7 +446,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\"seek\": \"Not supported yet?\"}",
+					"raw": "{\"position\": \"0:00:30\"}",
 					"options": {
 						"raw": {
 							"language": "json"
