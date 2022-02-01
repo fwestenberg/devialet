@@ -1,4 +1,4 @@
 # Devialet
 Devialet API Python implementation
 
-![Devialet](https://user-images.githubusercontent.com/47930023/151973019-e742d5bd-c70f-43a0-aef1-1114a1d67792.png)
+![Devialet](https://user-images.githubusercontent.com/47930023/151974074-744439f0-ceb3-47ea-bc4e-234a44e46831.png)
