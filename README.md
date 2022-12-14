@@ -1,4 +1,9 @@
 # Devialet
 Devialet API Python implementation
 
-![Devialet](https://user-images.githubusercontent.com/47930023/151974074-744439f0-ceb3-47ea-bc4e-234a44e46831.png)
+This is the first working version, a lot of things still need to be improved. Please be patient.
+
+# Installation instructions
+- Add the folder to your config/custom_components/ folder
+- Restart HA
+- Add the device using the config flow
