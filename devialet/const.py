@@ -2,11 +2,16 @@
 import logging
 from typing import Final
 
+import datetime
+
 DOMAIN: Final = "devialet"
 DEFAULT_NAME: Final = "Devialet"
 DEFAULT_SCAN_INTERVAL = 5
 MANUFACTURER: Final = "Devialet"
 LOGGER = logging.getLogger(__package__)
+
+# UPNP_ST = "urn:schemas-upnp-org:device:MediaRenderer:2"
+# DISCOVERY_INTERVAL = datetime.timedelta(seconds=60)
 
 NORMAL_INPUTS = {
     "Airplay": "airplay2",
