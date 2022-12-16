@@ -8,8 +8,8 @@ Also make sure your Devialet firmware version >= 2.16.1. Otherwise expect functi
 - Add the `devialet` folder to your `config/custom_components/` folder
 - Restart HA
 - The Devialet device(s) will automatically be discovered
-
 - If discovery did not complete within 1-2 minutes, add the device using the config flow
+- For a stereo setup, only one of the speakers need to be configured
 
 # Known issues:
 - When using Airplay, no media art is available
