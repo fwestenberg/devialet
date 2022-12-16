@@ -70,22 +70,18 @@ class DevialetDevice(MediaPlayerEntity):
         self._api = DevialetApi(host, session)
         self._name = DEFAULT_NAME
         self._muted = False
-        self._available = False
 
     async def async_update(self):
         """Get the latest details from the device."""
 
         if not await self._api.async_update():
-            self._available = False
             return False
-
-        self._available = True
-        return True
+        return self._api.is_available
 
     @property
     def device_info(self) -> DeviceInfo:
         """Return the device info."""
-        if not self._api.general_info:
+        if not self._api.is_available:
             return None
 
         return DeviceInfo(
@@ -112,18 +108,16 @@ class DevialetDevice(MediaPlayerEntity):
     @property
     def state(self) -> MediaPlayerState | None:
         """Return the state of the device."""
-        if not self._available:
+        if not self._api.is_available:
             return MediaPlayerState.OFF
 
-        playingstate = self._api.playing_state
+        playing_state = self._api.playing_state
 
-        if not playingstate:
-            return MediaPlayerState.OFF
-        if self._api.volume_level is None:
+        if not playing_state:
             return MediaPlayerState.IDLE
-        if playingstate == "playing":
+        if playing_state == "playing":
             return MediaPlayerState.PLAYING
-        if playingstate == "paused":
+        if playing_state == "paused":
             return MediaPlayerState.PAUSED
         return MediaPlayerState.ON
 

@@ -34,6 +34,7 @@ class DevialetApi:
         self._position_updated_at = 0
         self._media_duration = 0
         self._device_role = ""
+        self._is_available = False
 
     async def async_update(self):
         """Get the latest details from the device."""
@@ -44,20 +45,21 @@ class DevialetApi:
         if self._general_info is None:
             return False
 
-        self._volume = await self.get_request(
-            "/ipcontrol/v1/systems/current/sources/current/soundControl/volume"
-        )
-        if self._volume is None:
-            return True
+        if self._sources is None:
+            self._sources = await self.get_request(
+                "/ipcontrol/v1/groups/current/sources"
+            )
 
         self._source_state = await self.get_request(
             "/ipcontrol/v1/groups/current/sources/current"
         )
 
-        if self._sources is None:
-            self._sources = await self.get_request(
-                "/ipcontrol/v1/groups/current/sources"
-            )
+        if self._source_state is None:
+            return self._is_available
+
+        self._volume = await self.get_request(
+            "/ipcontrol/v1/systems/current/sources/current/soundControl/volume"
+        )
 
         self._night_mode = await self.get_request(
             "/ipcontrol/v1/systems/current/settings/audio/nightMode",
@@ -69,7 +71,7 @@ class DevialetApi:
 
         try:
             self._media_duration = self._source_state["metadata"]["duration"]
-        except KeyError:
+        except (KeyError, TypeError):
             self._media_duration = 0
             self._current_position = None
             self._position_updated_at = None
@@ -81,81 +83,63 @@ class DevialetApi:
             try:
                 self._current_position = position["position"]
                 self._position_updated_at = datetime.datetime.now()
-            except KeyError:
+            except (KeyError, TypeError):
                 self._current_position = None
                 self._position_updated_at = None
 
         return True
 
     @property
-    def general_info(self):
-        """Return the general info."""
-        return self._general_info
+    def is_available(self):
+        """Return available."""
+        return self._is_available
 
     @property
     def device_id(self):
         """Return the device id."""
-        if self._general_info is None:
-            return None
-
         try:
             return self._general_info["deviceId"]
-        except KeyError:
+        except (KeyError, TypeError):
             return None
 
     @property
     def serial(self):
         """Return the serial."""
-        if self._general_info is None:
-            return None
-
         try:
             return self._general_info["serial"]
-        except KeyError:
+        except (KeyError, TypeError):
             return None
 
     @property
     def device_name(self):
         """Return the device name."""
-        if self._general_info is None:
-            return None
-
         try:
             return self._general_info["deviceName"]
-        except KeyError:
+        except (KeyError, TypeError):
             return None
 
     @property
     def device_role(self):
         """Return the device role."""
-        if self._general_info is None:
-            return None
-
         try:
             return self._general_info["role"]
-        except KeyError:
+        except (KeyError, TypeError):
             return None
 
     @property
     def model(self):
         """Return the device model."""
-        if self._general_info is None:
-            return None
-
         try:
             return self._general_info["model"]
-        except KeyError:
+        except (KeyError, TypeError):
             return None
 
     @property
     def version(self):
         """Return the device version."""
-        if self._general_info is None:
-            return None
-
         try:
             return self._general_info["release"]["version"]
-        except KeyError:
+        except (KeyError, TypeError):
             return None
 
     @property
@@ -168,29 +152,23 @@ class DevialetApi:
         """Return the state of the device."""
         try:
             return self._source_state["playingState"]
-        except KeyError:
+        except (KeyError, TypeError):
             return None
 
     @property
     def volume_level(self):
         """Volume level of the media player (0..1)."""
-        if not self._volume:
-            return None
-
         try:
             return self._volume["volume"] * 0.01
-        except KeyError:
+        except (KeyError, TypeError):
             return None
 
     @property
     def is_volume_muted(self):
         """Return boolean if volume is currently muted."""
-        if not self._source_state:
-            return None
-
         try:
             return self._source_state["muteState"] == "muted"
-        except KeyError:
+        except (KeyError, TypeError):
             return None
 
     @property
@@ -223,56 +201,41 @@ class DevialetApi:
     @property
     def available_options(self):
         """Return the list of available options for this source."""
-        if not self._source_state:
-            return None
-
         try:
             return self._source_state["availableOptions"]
-        except KeyError:
+        except (KeyError, TypeError):
             return None
 
     @property
     def media_artist(self) -> str | None:
         """Artist of current playing media, music track only."""
-        if not self._source_state:
-            return None
-
         try:
             return self._source_state["metadata"]["artist"]
-        except KeyError:
+        except (KeyError, TypeError):
             return None
 
     @property
     def media_album_name(self) -> str | None:
         """Album name of current playing media, music track only."""
-        if not self._source_state:
-            return None
-
         try:
             return self._source_state["metadata"]["album"]
-        except KeyError:
+        except (KeyError, TypeError):
             return None
 
     @property
     def media_title(self):
         """Return the current media info."""
-        if not self._source_state:
-            return None
-
         try:
             return self._source_state["metadata"]["title"]
-        except KeyError:
+        except (KeyError, TypeError):
             return None
 
     @property
     def media_image_url(self) -> str | None:
-        """Image url of current playing media."""
-        if not self._source_state:
-            return None
-
+        """Image url of current playing media, not available for Airplay."""
         try:
             return self._source_state["metadata"]["coverArtUrl"]
-        except KeyError:
+        except (KeyError, TypeError):
             return None
 
     @property
@@ -293,24 +256,18 @@ class DevialetApi:
     @property
     def supported_features(self):
         """Flag media player features that are supported."""
-        if self._source_state is None:
-            return None
-
         try:
             return self._source_state["availableOptions"]
-        except KeyError:
+        except (KeyError, TypeError):
             return None
 
     @property
     def source(self):
         """Return the current input source."""
-        if not self._source_state:
-            return None
-
         try:
             source_type = self._source_state["source"]["type"]
             device_id = self._source_state["source"]["deviceId"]
-        except KeyError:
+        except (KeyError, TypeError):
             return None
 
         position = ""
@@ -326,24 +283,18 @@ class DevialetApi:
     @property
     def night_mode(self):
         """Return the current nightmode state."""
-        if not self._night_mode:
-            return None
-
         try:
             return self._night_mode["nightMode"] == "on"
-        except KeyError:
+        except (KeyError, TypeError):
             return None
 
     @property
     def equalizer(self):
         """Return the current equalizer preset."""
-        if not self._equalizer:
-            return None
-
         try:
             if self._equalizer["enabled"]:
                 return self._equalizer["preset"]
-        except KeyError:
+        except (KeyError, TypeError):
             return None
 
     async def async_volume_up(self) -> None:
@@ -440,7 +391,7 @@ class DevialetApi:
 
     async def async_select_source(self, source: str) -> None:
         """Select input source."""
-        # Not available yet?
+        # Not available yet
 
     async def get_request(self, suffix=str):
         """Generic GET method."""
@@ -459,6 +410,7 @@ class DevialetApi:
                 )
 
             response_json = json.loads(response)
+            self._is_available = True
 
             if "error" in response_json:
                 _LOGGER.debug(response_json["error"])
@@ -468,8 +420,10 @@ class DevialetApi:
 
         except aiohttp.ClientConnectorError as conn_err:
             _LOGGER.debug("Host %s: Connection error %s", self._host, str(conn_err))
+            self._is_available = False
             return None
         except asyncio.TimeoutError:
+            self._is_available = False
             _LOGGER.debug(
                 "Devialet connection timeout exception. Please check the connection"
             )
