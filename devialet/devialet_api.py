@@ -72,11 +72,14 @@ class DevialetApi:
         try:
             self._media_duration = self._source_state["metadata"]["duration"]
         except (KeyError, TypeError):
-            self._media_duration = 0
+            self._media_duration = None
             self._current_position = None
             self._position_updated_at = None
 
-        if self._media_duration > 0:
+        if self._media_duration == 0:
+            self._media_duration = None
+
+        if self._media_duration is not None:
             position = await self.get_request(
                 "/ipcontrol/v1/groups/current/sources/current/playback/position"
             )

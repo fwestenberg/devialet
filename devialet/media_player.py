@@ -155,6 +155,9 @@ class DevialetDevice(MediaPlayerEntity):
     @property
     def media_title(self):
         """Return the current media info."""
+        if not self._api.media_title:
+            return self.source
+
         return self._api.media_title
 
     @property
