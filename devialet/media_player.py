@@ -9,7 +9,7 @@ from homeassistant.components.media_player import (
     MediaPlayerEntityFeature,
     MediaPlayerState,
 )
-from homeassistant.const import CONF_IP_ADDRESS
+from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -57,7 +57,7 @@ async def async_setup_entry(
     session = async_get_clientsession(hass)
 
     async_add_entities(
-        [DevialetDevice(entry.data[CONF_IP_ADDRESS], session)],
+        [DevialetDevice(entry.data[CONF_HOST], session)],
         update_before_add=True,
     )
 
@@ -91,7 +91,7 @@ class DevialetDevice(MediaPlayerEntity):
         return DeviceInfo(
             identifiers={
                 # Serial numbers are unique identifiers within a specific domain
-                (DOMAIN, self._api.device_id)
+                (DOMAIN, self._api.serial)
             },
             name=self._api.device_name,
             manufacturer=MANUFACTURER,
@@ -106,8 +106,8 @@ class DevialetDevice(MediaPlayerEntity):
 
     @property
     def unique_id(self):
-        """Return the name of the device."""
-        return self._api.device_id
+        """Return the unique id of the device."""
+        return self._api.serial
 
     @property
     def state(self) -> MediaPlayerState | None:

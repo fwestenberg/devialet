@@ -104,6 +104,17 @@ class DevialetApi:
             return None
 
     @property
+    def serial(self):
+        """Return the serial."""
+        if self._general_info is None:
+            return None
+
+        try:
+            return self._general_info["serial"]
+        except KeyError:
+            return None
+
+    @property
     def device_name(self):
         """Return the device name."""
         if self._general_info is None:
