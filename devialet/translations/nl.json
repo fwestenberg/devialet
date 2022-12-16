@@ -7,12 +7,15 @@
             "cannot_connect": "Kan geen verbinding maken",
             "unknown": "Onverwachte fout"
         },
+        "flow_title": "{title}",
         "step": {
             "user": {
                 "data": {
-                    "ip_address": "IP adres",
-                    "scan_interval": "Vernieuwings frequentie"
+                    "host": "Host"
                 }
+            },
+            "confirm": {
+                "description": "Wilt u Devialet apparaat {device} instellen?"
             }
         }
     }
