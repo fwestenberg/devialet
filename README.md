@@ -1,7 +1,7 @@
 # Devialet
 Devialet API Python implementation
 
-This is the first working version, a lot of things still need to be improved. Please be patient.
+This is the first working version, a lot of things still need to be improved. 
 Also make sure your Devialet firmware version >= 2.16.1. Otherwise expect functions not to work.
 
 # Installation instructions
