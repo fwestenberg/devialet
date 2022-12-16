@@ -12,8 +12,9 @@ Also make sure your Devialet firmware version >= 2.16.1. Otherwise expect functi
 - If discovery did not complete within 1-2 minutes, add the device using the config flow
 
 # Known issues:
-- When using Airplay, no media art is available (due to the API)
-- Select source not working (due to the API)
+- When using Airplay, no media art is available
+- Select source not working
+
 
 # Screenshots:
 
