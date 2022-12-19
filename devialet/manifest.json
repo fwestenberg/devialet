@@ -2,7 +2,7 @@
   "domain": "devialet",
   "name": "Devialet",
   "config_flow": true,
-  "documentation": "https://www.home-assistant.io/integrations/devialet",
+  "documentation": "https://github.com/fwestenberg/homeassistant-devialet",
   "codeowners": [
     "@fwestenberg"
   ],
