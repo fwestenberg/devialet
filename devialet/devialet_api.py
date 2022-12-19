@@ -8,9 +8,7 @@ import asyncio
 import aiohttp
 import datetime
 
-from .const import NORMAL_INPUTS, SPEAKER_POSITIONS
-
-_LOGGER = logging.getLogger(__name__)
+from .const import LOGGER, NORMAL_INPUTS, SPEAKER_POSITIONS
 
 
 class DevialetApi:
@@ -406,7 +404,7 @@ class DevialetApi:
                 url=url, allow_redirects=False, timeout=2
             ) as response:
                 response = await response.read()
-                _LOGGER.debug(
+                LOGGER.debug(
                     "Host %s: HTTP Response data: %s",
                     self._host,
                     response,
@@ -416,26 +414,26 @@ class DevialetApi:
             self._is_available = True
 
             if "error" in response_json:
-                _LOGGER.debug(response_json["error"])
+                LOGGER.debug(response_json["error"])
                 return None
 
             return response_json
 
         except aiohttp.ClientConnectorError as conn_err:
-            _LOGGER.debug("Host %s: Connection error %s", self._host, str(conn_err))
+            LOGGER.debug("Host %s: Connection error %s", self._host, str(conn_err))
             self._is_available = False
             return None
         except asyncio.TimeoutError:
             self._is_available = False
-            _LOGGER.debug(
+            LOGGER.debug(
                 "Devialet connection timeout exception. Please check the connection"
             )
             return None
         except (TypeError, json.JSONDecodeError):
-            _LOGGER.debug("Devialet: JSON error")
+            LOGGER.debug("Devialet: JSON error")
             return None
         except Exception:  # pylint: disable=bare-except
-            _LOGGER.debug("Devialet: unknown exception occurred")
+            LOGGER.debug("Devialet: unknown exception occurred")
             return None
 
     async def post_request(self, suffix=str, body=str):
@@ -448,7 +446,7 @@ class DevialetApi:
                 url=url, json=body, allow_redirects=False, timeout=2
             ) as response:
                 response = await response.read()
-                _LOGGER.debug(
+                LOGGER.debug(
                     "Host %s: HTTP Response data: %s",
                     self._host,
                     response,
@@ -457,16 +455,16 @@ class DevialetApi:
             return True
 
         except aiohttp.ClientConnectorError as conn_err:
-            _LOGGER.debug("Host %s: Connection error %s", self._host, str(conn_err))
+            LOGGER.debug("Host %s: Connection error %s", self._host, str(conn_err))
             return False
         except asyncio.TimeoutError:
-            _LOGGER.debug(
+            LOGGER.debug(
                 "Devialet connection timeout exception. Please check the connection"
             )
             return False
         except (TypeError, json.JSONDecodeError):
-            _LOGGER.debug("Devialet: JSON error")
+            LOGGER.debug("Devialet: JSON error")
             return False
         except Exception:  # pylint: disable=bare-except
-            _LOGGER.debug("Devialet: unknown exception occurred")
+            LOGGER.debug("Devialet: unknown exception occurred")
             return False
