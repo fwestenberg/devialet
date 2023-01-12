@@ -321,11 +321,11 @@ class DevialetApi:
         """Mute (true) or unmute (false) media player."""
         if mute:
             await self.post_request(
-                "/ipcontrol/v1/systems/current/sources/current/soundControl/mute", {}
+                "/ipcontrol/v1/groups/current/sources/current/playback/mute", {}
             )
         else:
             await self.post_request(
-                "/ipcontrol/v1/systems/current/sources/current/soundControl/unmute", {}
+                "/ipcontrol/v1/groups/current/sources/current/playback/unmute", {}
             )
 
     async def async_media_play(self) -> None:
