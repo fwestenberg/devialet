@@ -15,6 +15,8 @@ NORMAL_INPUTS = {
     "Optical left": "optical_left",
     "Optical right": "optical_right",
     "Optical jack": "opticaljack",
+    "Optical jack left": "opticaljack_left",
+    "Optical jack right": "opticaljack_right",
     "Phono": "phono",
     "Raat": "raat",
     "Spotify Connect": "spotifyconnect",

@@ -183,7 +183,7 @@ class DevialetApi:
             source_type = source["type"]
             device_id = source["deviceId"]
 
-            if source_type == "optical":
+            if source_type == "optical" or source_type == "opticaljack":
                 position = ""
 
                 if self.device_role in SPEAKER_POSITIONS:
@@ -272,7 +272,9 @@ class DevialetApi:
             return None
 
         position = ""
-        if source_type == "optical" and self.device_role in SPEAKER_POSITIONS:
+        if (
+            source_type == "optical" or source_type == "optical_jack"
+        ) and self.device_role in SPEAKER_POSITIONS:
             for role, position in SPEAKER_POSITIONS.items():
                 if (device_id == self.device_id and role == self.device_role) or (
                     device_id != self.device_id and role != self.device_role
@@ -392,7 +394,48 @@ class DevialetApi:
 
     async def async_select_source(self, source: str) -> None:
         """Select input source."""
-        # Not available yet
+        source_id = None
+
+        try:
+            name = NORMAL_INPUTS[source]
+        except KeyError:
+            LOGGER.error("Unknown source %s selected", source)
+            return
+
+        if "_" in name:
+            name_split = name.split("_")
+
+            for role, position in SPEAKER_POSITIONS.items():
+                if position == name_split[1]:
+                    if role == self.device_role:
+                        for _source in self._sources["sources"]:
+                            if (
+                                _source["deviceId"] == self.device_id
+                                and _source["type"] == name_split[0]
+                            ):
+                                source_id = _source["sourceId"]
+                                break
+                    else:
+                        for _source in self._sources["sources"]:
+                            if (
+                                _source["deviceId"] != self.device_id
+                                and _source["type"] == name_split[0]
+                            ):
+                                source_id = _source["sourceId"]
+                                break
+                    break
+        else:
+            for _source in self._sources["sources"]:
+                if _source["type"] == name:
+                    source_id = _source["sourceId"]
+
+        if source_id is None:
+            LOGGER.error("Source %s is not available", source)
+            return
+
+        await self.post_request(
+            "/ipcontrol/v1/groups/current/sources/" + source_id + "/playback/play", {}
+        )
 
     async def get_request(self, suffix=str):
         """Generic GET method."""
@@ -411,12 +454,12 @@ class DevialetApi:
                 )
 
             response_json = json.loads(response)
-            self._is_available = True
 
             if "error" in response_json:
                 LOGGER.debug(response_json["error"])
                 return None
 
+            self._is_available = True
             return response_json
 
         except aiohttp.ClientConnectorError as conn_err:
