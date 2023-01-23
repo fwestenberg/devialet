@@ -300,8 +300,7 @@ class DevialetApi:
         except (KeyError, TypeError):
             return None
         
-    @property
-    def diagnostics(self):
+    async def async_get_diagnostics(self):
         """Return the diagnostic data."""
         return {
             "general_info": self._general_info,
