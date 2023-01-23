@@ -1,12 +1,11 @@
 """Support for Devialet Phantom speakers."""
 from __future__ import annotations
 
-import json
-import logging
-
 import asyncio
-import aiohttp
 import datetime
+import json
+
+import aiohttp
 
 from .const import LOGGER, NORMAL_INPUTS, SPEAKER_POSITIONS
 
@@ -299,7 +298,7 @@ class DevialetApi:
                 return self._equalizer["preset"]
         except (KeyError, TypeError):
             return None
-        
+
     async def async_get_diagnostics(self):
         """Return the diagnostic data."""
         return {
