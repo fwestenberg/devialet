@@ -299,6 +299,21 @@ class DevialetApi:
                 return self._equalizer["preset"]
         except (KeyError, TypeError):
             return None
+        
+    @property
+    def diagnostics(self):
+        """Return the diagnostic data."""
+        return {
+            "general_info": self._general_info,
+            "sources": self._sources,
+            "source_state": self._source_state,
+            "volume": self._volume,
+            "night_mode": self._night_mode,
+            "equalizer": self._equalizer,
+            "current_position": self._current_position,
+            "source_list": self.source_list,
+            "source": self.source,
+        }
 
     async def async_volume_up(self) -> None:
         """Volume up media player."""
