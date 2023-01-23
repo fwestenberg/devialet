@@ -303,13 +303,13 @@ class DevialetApi:
     async def async_get_diagnostics(self):
         """Return the diagnostic data."""
         return {
+            "is_available": self._is_available,
             "general_info": self._general_info,
             "sources": self._sources,
             "source_state": self._source_state,
             "volume": self._volume,
             "night_mode": self._night_mode,
             "equalizer": self._equalizer,
-            "current_position": self._current_position,
             "source_list": self.source_list,
             "source": self.source,
         }
