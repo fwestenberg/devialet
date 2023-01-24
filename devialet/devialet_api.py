@@ -7,7 +7,7 @@ import json
 
 import aiohttp
 
-from .const import LOGGER, NORMAL_INPUTS, SPEAKER_POSITIONS
+from .const import LOGGER, NORMAL_INPUTS, SPEAKER_POSITIONS, UrlSuffix
 
 
 class DevialetApi:
@@ -37,34 +37,24 @@ class DevialetApi:
         """Get the latest details from the device."""
 
         if self._general_info is None:
-            self._general_info = await self.get_request("/ipcontrol/v1/devices/current")
+            self._general_info = await self.get_request(UrlSuffix.GET_GENERAL_INFO)
 
         if self._general_info is None:
             return False
 
         if self._sources is None:
-            self._sources = await self.get_request(
-                "/ipcontrol/v1/groups/current/sources"
-            )
+            self._sources = await self.get_request(UrlSuffix.GET_SOURCES)
 
-        self._source_state = await self.get_request(
-            "/ipcontrol/v1/groups/current/sources/current"
-        )
+        self._source_state = await self.get_request(UrlSuffix.GET_CURRENT_SOURCE)
 
         if self._source_state is None:
             return self._is_available
 
-        self._volume = await self.get_request(
-            "/ipcontrol/v1/systems/current/sources/current/soundControl/volume"
-        )
+        self._volume = await self.get_request(UrlSuffix.GET_VOLUME)
 
-        self._night_mode = await self.get_request(
-            "/ipcontrol/v1/systems/current/settings/audio/nightMode",
-        )
+        self._night_mode = await self.get_request(UrlSuffix.GET_NIGHT_MODE)
 
-        self._equalizer = await self.get_request(
-            "/ipcontrol/v1/systems/current/settings/audio/equalizer",
-        )
+        self._equalizer = await self.get_request(UrlSuffix.GET_EQUALIZER)
 
         try:
             self._media_duration = self._source_state["metadata"]["duration"]
@@ -77,9 +67,7 @@ class DevialetApi:
             self._media_duration = None
 
         if self._media_duration is not None:
-            position = await self.get_request(
-                "/ipcontrol/v1/groups/current/sources/current/playback/position"
-            )
+            position = await self.get_request(UrlSuffix.GET_CURRENT_POSITION)
             try:
                 self._current_position = position["position"]
                 self._position_updated_at = datetime.datetime.now()
@@ -315,69 +303,51 @@ class DevialetApi:
 
     async def async_volume_up(self) -> None:
         """Volume up media player."""
-        await self.post_request(
-            "/ipcontrol/v1/systems/current/sources/current/soundControl/volumeUp", {}
-        )
+        await self.post_request(UrlSuffix.VOLUME_UP, {})
 
     async def async_volume_down(self) -> None:
         """Volume down media player."""
-        await self.post_request(
-            "/ipcontrol/v1/systems/current/sources/current/soundControl/volumeDown", {}
-        )
+        await self.post_request(UrlSuffix.VOLUME_DOWN, {})
 
     async def async_set_volume_level(self, volume: float) -> None:
         """Set volume level, range 0..1."""
         await self.post_request(
-            "/ipcontrol/v1/systems/current/sources/current/soundControl/volume",
+            UrlSuffix.VOLUME_SET,
             {"volume": volume * 100},
         )
 
     async def async_mute_volume(self, mute: bool) -> None:
         """Mute (true) or unmute (false) media player."""
         if mute:
-            await self.post_request(
-                "/ipcontrol/v1/groups/current/sources/current/playback/mute", {}
-            )
+            await self.post_request(UrlSuffix.MUTE, {})
         else:
-            await self.post_request(
-                "/ipcontrol/v1/groups/current/sources/current/playback/unmute", {}
-            )
+            await self.post_request(UrlSuffix.UNMUTE, {})
 
     async def async_media_play(self) -> None:
         """Play media player."""
-        await self.post_request(
-            "/ipcontrol/v1/systems/current/sources/current/playback/play", {}
-        )
+        await self.post_request(UrlSuffix.PLAY, {})
 
     async def async_media_pause(self) -> None:
         """Pause media player."""
-        await self.post_request(
-            "/ipcontrol/v1/systems/current/sources/current/playback/pause", {}
-        )
+        await self.post_request(UrlSuffix.PAUSE, {})
 
     async def async_media_stop(self) -> None:
         """Pause media player."""
-        await self.post_request(
-            "/ipcontrol/v1/systems/current/sources/current/playback/pause", {}
-        )
+        await self.post_request(UrlSuffix.PAUSE, {})
 
     async def async_media_next_track(self) -> None:
         """Send the next track command."""
-        await self.post_request(
-            "/ipcontrol/v1/systems/current/sources/current/playback/next", {}
-        )
+        await self.post_request(UrlSuffix.NEXT_TRACK, {})
 
     async def async_media_previous_track(self) -> None:
         """Send the previous track command."""
-        await self.post_request(
-            "/ipcontrol/v1/systems/current/sources/current/playback/previous", {}
-        )
+        await self.post_request(UrlSuffix.PREVIOUS_TRACK, {})
 
     async def async_media_seek(self, position: float) -> None:
         """Send seek command."""
 
         await self.post_request(
-            "/ipcontrol/v1/systems/current/sources/current/playback/position",
+            UrlSuffix.SEEK,
             {"position": int(position)},
         )
 
@@ -389,7 +359,7 @@ class DevialetApi:
             mode = "off"
 
         await self.post_request(
-            "/ipcontrol/v1/systems/current/settings/audio/nightMode",
+            UrlSuffix.NIGHT_MODE,
             {"nightMode": mode},
         )
 
@@ -397,13 +367,13 @@ class DevialetApi:
         """Set the equalizer preset."""
 
         await self.post_request(
-            "/ipcontrol/v1/systems/current/settings/audio/equalizer",
+            UrlSuffix.EQUALIZER,
             {"preset": preset},
         )
 
     async def async_turn_off(self) -> None:
         """Turn off media player."""
-        await self.post_request("/ipcontrol/v1/systems/current/powerOff", {})
+        await self.post_request(UrlSuffix.TURN_OFF, {})
 
     async def async_select_source(self, source: str) -> None:
         """Select input source."""
@@ -447,13 +417,13 @@ class DevialetApi:
             return
 
         await self.post_request(
-            "/ipcontrol/v1/groups/current/sources/" + source_id + "/playback/play", {}
+            str(UrlSuffix.SELECT_SOURCE).replace("%SOURCE_ID%", source_id), {}
         )
 
     async def get_request(self, suffix=str):
         """Generic GET method."""
 
-        url = "http://" + self._host + suffix
+        url = "http://" + self._host + str(suffix)
 
         try:
             async with self._session.get(
@@ -495,7 +465,7 @@ class DevialetApi:
     async def post_request(self, suffix=str, body=str):
         """Generic POST method."""
 
-        url = "http://" + self._host + suffix
+        url = "http://" + self._host + str(suffix)
 
         try:
             async with self._session.post(
