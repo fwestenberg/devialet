@@ -1,6 +1,6 @@
 """Constants for the Devialet integration."""
 import logging
-from typing import Final
+from enum import Enum
 
 LOGGER = logging.getLogger(__package__)
 
@@ -26,3 +26,35 @@ SPEAKER_POSITIONS = {
     "FrontLeft": "left",
     "FrontRight": "right",
 }
+
+
+class UrlSuffix(Enum):
+    GET_GENERAL_INFO = "/ipcontrol/v1/devices/current"
+    GET_SOURCES = "/ipcontrol/v1/groups/current/sources"
+    GET_CURRENT_SOURCE = "/ipcontrol/v1/groups/current/sources/current"
+    GET_VOLUME = "/ipcontrol/v1/systems/current/sources/current/soundControl/volume"
+    GET_NIGHT_MODE = "/ipcontrol/v1/systems/current/settings/audio/nightMode"
+    GET_EQUALIZER = "/ipcontrol/v1/systems/current/settings/audio/equalizer"
+    GET_CURRENT_POSITION = (
+        "/ipcontrol/v1/groups/current/sources/current/playback/position"
+    )
+    SEEK = "/ipcontrol/v1/systems/current/sources/current/playback/position"
+    PLAY = "/ipcontrol/v1/systems/current/sources/current/playback/play"
+    PAUSE = "/ipcontrol/v1/systems/current/sources/current/playback/pause"
+    STOP = "/ipcontrol/v1/systems/current/sources/current/playback/pause"
+    PREVIOUS_TRACK = "/ipcontrol/v1/systems/current/sources/current/playback/previous"
+    NEXT_TRACK = "/ipcontrol/v1/systems/current/sources/current/playback/next"
+    TURN_OFF = "/ipcontrol/v1/systems/current/powerOff"
+    VOLUME_UP = "/ipcontrol/v1/systems/current/sources/current/soundControl/volumeUp"
+    VOLUME_DOWN = (
+        "/ipcontrol/v1/systems/current/sources/current/soundControl/volumeDown"
+    )
+    VOLUME_SET = "/ipcontrol/v1/systems/current/sources/current/soundControl/volume"
+    MUTE = "/ipcontrol/v1/groups/current/sources/current/playback/mute"
+    UNMUTE = "/ipcontrol/v1/groups/current/sources/current/playback/unmute"
+    EQUALIZER = "/ipcontrol/v1/systems/current/settings/audio/equalizer"
+    NIGHT_MODE = "/ipcontrol/v1/systems/current/settings/audio/nightMode"
+    SELECT_SOURCE = "/ipcontrol/v1/groups/current/sources/%SOURCE_ID%/playback/play"
+
+    def __str__(self):
+        return str(self.value)
