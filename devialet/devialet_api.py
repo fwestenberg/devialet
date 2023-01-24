@@ -259,7 +259,7 @@ class DevialetApi:
 
         position = ""
         if (
-            source_type == "optical" or source_type == "optical_jack"
+            source_type == "optical" or source_type == "opticaljack"
         ) and self.device_role in SPEAKER_POSITIONS:
             for role, position in SPEAKER_POSITIONS.items():
                 if (device_id == self.device_id and role == self.device_role) or (
