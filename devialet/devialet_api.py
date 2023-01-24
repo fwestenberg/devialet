@@ -33,14 +33,16 @@ class DevialetApi:
         self._device_role = ""
         self._is_available = False
 
-    async def async_update(self):
+    async def async_update(self) -> bool | None:
         """Get the latest details from the device."""
-
         if self._general_info is None:
             self._general_info = await self.get_request(UrlSuffix.GET_GENERAL_INFO)
 
         if self._general_info is None:
             return False
+        
+        if not self._is_available:
+            self._sources == None
 
         if self._sources is None:
             self._sources = await self.get_request(UrlSuffix.GET_SOURCES)
@@ -51,9 +53,7 @@ class DevialetApi:
             return self._is_available
 
         self._volume = await self.get_request(UrlSuffix.GET_VOLUME)
-
         self._night_mode = await self.get_request(UrlSuffix.GET_NIGHT_MODE)
-
         self._equalizer = await self.get_request(UrlSuffix.GET_EQUALIZER)
 
         try:
@@ -70,7 +70,7 @@ class DevialetApi:
             position = await self.get_request(UrlSuffix.GET_CURRENT_POSITION)
             try:
                 self._current_position = position["position"]
-                self._position_updated_at = datetime.datetime.now()
+                self._position_updated_at = datetime.datetime.utcnow()
             except (KeyError, TypeError):
                 self._current_position = None
                 self._position_updated_at = None
@@ -78,12 +78,12 @@ class DevialetApi:
         return True
 
     @property
-    def is_available(self):
+    def is_available(self) -> bool | None:
         """Return available."""
         return self._is_available
 
     @property
-    def device_id(self):
+    def device_id(self) -> str | None:
         """Return the device id."""
         try:
             return self._general_info["deviceId"]
@@ -91,7 +91,7 @@ class DevialetApi:
             return None
 
     @property
-    def serial(self):
+    def serial(self) -> str | None:
         """Return the serial."""
         try:
             return self._general_info["serial"]
@@ -99,7 +99,7 @@ class DevialetApi:
             return None
 
     @property
-    def device_name(self):
+    def device_name(self) -> str | None:
         """Return the device name."""
         try:
             return self._general_info["deviceName"]
@@ -107,7 +107,7 @@ class DevialetApi:
             return None
 
     @property
-    def device_role(self):
+    def device_role(self) -> str | None:
         """Return the device role."""
         try:
             return self._general_info["role"]
@@ -115,7 +115,7 @@ class DevialetApi:
             return None
 
     @property
-    def model(self):
+    def model(self) -> str | None:
         """Return the device model."""
         try:
             return self._general_info["model"]
@@ -123,7 +123,7 @@ class DevialetApi:
             return None
 
     @property
-    def version(self):
+    def version(self) -> str | None:
         """Return the device version."""
         try:
             return self._general_info["release"]["version"]
@@ -131,12 +131,12 @@ class DevialetApi:
             return None
 
     @property
-    def source_state(self):
-        """Return the general info."""
+    def source_state(self) -> any | None:
+        """Return the source state object."""
         return self._source_state
 
     @property
-    def playing_state(self):
+    def playing_state(self) -> str | None:
         """Return the state of the device."""
         try:
             return self._source_state["playingState"]
@@ -144,7 +144,7 @@ class DevialetApi:
             return None
 
     @property
-    def volume_level(self):
+    def volume_level(self) -> float | None:
         """Volume level of the media player (0..1)."""
         try:
             return self._volume["volume"] * 0.01
@@ -152,7 +152,7 @@ class DevialetApi:
             return None
 
     @property
-    def is_volume_muted(self):
+    def is_volume_muted(self) -> bool | None:
         """Return boolean if volume is currently muted."""
         try:
             return self._source_state["muteState"] == "muted"
@@ -160,7 +160,7 @@ class DevialetApi:
             return None
 
     @property
-    def source_list(self):
+    def source_list(self) -> list | None:
         """Return the list of available input sources."""
 
         if self._sources is None or len(self._source_list) > 0:
@@ -170,15 +170,14 @@ class DevialetApi:
             source_type = source["type"]
             device_id = source["deviceId"]
 
-            if source_type == "optical" or source_type == "opticaljack":
+            if self.device_role in SPEAKER_POSITIONS and (source_type == "optical" or source_type == "opticaljack"):
+                # Stereo devices have the role FrontLeft or FrontRight. Add a suffix to the source to recognize the device.
                 position = ""
-
-                if self.device_role in SPEAKER_POSITIONS:
-                    for role, position in SPEAKER_POSITIONS.items():
-                        if (
-                            device_id == self.device_id and role == self.device_role
-                        ) or (device_id != self.device_id and role != self.device_role):
-                            source_type = source_type + "_" + position
+                for role, position in SPEAKER_POSITIONS.items():
+                    if (
+                        device_id == self.device_id and role == self.device_role
+                    ) or (device_id != self.device_id and role != self.device_role):
+                        source_type = source_type + "_" + position
 
             for pretty_name, name in NORMAL_INPUTS.items():
                 if name == source_type:
@@ -187,7 +186,7 @@ class DevialetApi:
         return sorted(self._source_list)
 
     @property
-    def available_options(self):
+    def available_options(self) -> any | None:
         """Return the list of available options for this source."""
         try:
             return self._source_state["availableOptions"]
@@ -211,7 +210,7 @@ class DevialetApi:
             return None
 
     @property
-    def media_title(self):
+    def media_title(self) -> str | None:
         """Return the current media info."""
         try:
             return self._source_state["metadata"]["title"]
@@ -242,7 +241,7 @@ class DevialetApi:
         return self._position_updated_at
 
     @property
-    def supported_features(self):
+    def supported_features(self) -> any | None:
         """Flag media player features that are supported."""
         try:
             return self._source_state["availableOptions"]
@@ -250,7 +249,7 @@ class DevialetApi:
             return None
 
     @property
-    def source(self):
+    def source(self) -> str | None:
         """Return the current input source."""
         try:
             source_type = self._source_state["source"]["type"]
@@ -271,7 +270,7 @@ class DevialetApi:
         return source_type
 
     @property
-    def night_mode(self):
+    def night_mode(self) -> bool | None:
         """Return the current nightmode state."""
         try:
             return self._night_mode["nightMode"] == "on"
@@ -279,7 +278,7 @@ class DevialetApi:
             return None
 
     @property
-    def equalizer(self):
+    def equalizer(self) -> str | None:
         """Return the current equalizer preset."""
         try:
             if self._equalizer["enabled"]:
@@ -287,7 +286,7 @@ class DevialetApi:
         except (KeyError, TypeError):
             return None
 
-    async def async_get_diagnostics(self):
+    async def async_get_diagnostics(self) -> any | None:
         """Return the diagnostic data."""
         return {
             "is_available": self._is_available,
@@ -420,7 +419,7 @@ class DevialetApi:
             str(UrlSuffix.SELECT_SOURCE).replace("%SOURCE_ID%", source_id), {}
         )
 
-    async def get_request(self, suffix=str):
+    async def get_request(self, suffix=str) -> any | None:
         """Generic GET method."""
 
         url = "http://" + self._host + str(suffix)
@@ -462,7 +461,7 @@ class DevialetApi:
             LOGGER.debug("Devialet: unknown exception occurred")
             return None
 
-    async def post_request(self, suffix=str, body=str):
+    async def post_request(self, suffix=str, body=str) -> any | None:
         """Generic POST method."""
 
         url = "http://" + self._host + str(suffix)

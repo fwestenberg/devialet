@@ -7,17 +7,17 @@ LOGGER = logging.getLogger(__package__)
 NORMAL_INPUTS = {
     "Airplay": "airplay2",
     "Bluetooth": "bluetooth",
-    "Digital left": "digital_left",
-    "Digital right": "digital_right",
-    "Line": "line",
+    "Digital left": "digital_left", #Arch only
+    "Digital right": "digital_right", #Arch only
+    "Line": "line", #Arch only
     "Online": "upnp",
-    "Optical": "optical",
-    "Optical left": "optical_left",
-    "Optical right": "optical_right",
-    "Optical jack": "opticaljack",
-    "Optical jack left": "opticaljack_left",
-    "Optical jack right": "opticaljack_right",
-    "Phono": "phono",
+    "Optical": "optical", #Phantom I, Dialog (Mono)
+    "Optical left": "optical_left", #Phantom I (Stereo)
+    "Optical right": "optical_right", #Phantom I (Stereo)
+    "Optical jack": "opticaljack", #Phantom II (Mono)
+    "Optical jack left": "opticaljack_left", #Phantom II (Stereo)
+    "Optical jack right": "opticaljack_right", #Phantom II (Stereo)
+    "Phono": "phono", #Arch only
     "Raat": "raat",
     "Spotify Connect": "spotifyconnect",
 }
