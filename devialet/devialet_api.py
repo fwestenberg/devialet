@@ -40,9 +40,9 @@ class DevialetApi:
 
         if self._general_info is None:
             return False
-        
+
         if not self._is_available:
-            self._sources == None
+            self._sources = None
 
         if self._sources is None:
             self._sources = await self.get_request(UrlSuffix.GET_SOURCES)
@@ -170,13 +170,15 @@ class DevialetApi:
             source_type = source["type"]
             device_id = source["deviceId"]
 
-            if self.device_role in SPEAKER_POSITIONS and (source_type == "optical" or source_type == "opticaljack"):
+            if self.device_role in SPEAKER_POSITIONS and (
+                source_type == "optical" or source_type == "opticaljack"
+            ):
                 # Stereo devices have the role FrontLeft or FrontRight. Add a suffix to the source to recognize the device.
                 position = ""
                 for role, position in SPEAKER_POSITIONS.items():
-                    if (
-                        device_id == self.device_id and role == self.device_role
-                    ) or (device_id != self.device_id and role != self.device_role):
+                    if (device_id == self.device_id and role == self.device_role) or (
+                        device_id != self.device_id and role != self.device_role
+                    ):
                         source_type = source_type + "_" + position
 
             for pretty_name, name in NORMAL_INPUTS.items():
@@ -252,8 +254,14 @@ class DevialetApi:
     def source(self) -> str | None:
         """Return the current input source."""
         try:
-            source_type = self._source_state["source"]["type"]
+            source_id = self._source_state["source"]["sourceId"]
             device_id = self._source_state["source"]["deviceId"]
+
+            # Devialet Arch has a different source description.
+            for source in self._sources["sources"]:
+                if source["sourceId"] == source_id and source["deviceId"] == device_id:
+                    source_type = source["type"]
+                    break
         except (KeyError, TypeError):
             return None
 
