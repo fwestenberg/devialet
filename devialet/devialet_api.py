@@ -38,19 +38,17 @@ class DevialetApi:
         if self._general_info is None:
             self._general_info = await self.get_request(UrlSuffix.GET_GENERAL_INFO)
 
+        # Without general info the device has not been online yet
         if self._general_info is None:
             return False
 
+        self._source_state = await self.get_request(UrlSuffix.GET_CURRENT_SOURCE)
+        # the source state call if enough to find out if the device is available (On or Off)
         if not self._is_available:
-            self._sources = None
+            return True
 
         if self._sources is None:
             self._sources = await self.get_request(UrlSuffix.GET_SOURCES)
-
-        self._source_state = await self.get_request(UrlSuffix.GET_CURRENT_SOURCE)
-
-        if self._source_state is None:
-            return self._is_available
 
         self._volume = await self.get_request(UrlSuffix.GET_VOLUME)
         self._night_mode = await self.get_request(UrlSuffix.GET_NIGHT_MODE)
@@ -173,7 +171,8 @@ class DevialetApi:
             if self.device_role in SPEAKER_POSITIONS and (
                 source_type == "optical" or source_type == "opticaljack"
             ):
-                # Stereo devices have the role FrontLeft or FrontRight. Add a suffix to the source to recognize the device.
+                # Stereo devices have the role FrontLeft or FrontRight.
+                # Add a suffix to the source to recognize the device.
                 position = ""
                 for role, position in SPEAKER_POSITIONS.items():
                     if (device_id == self.device_id and role == self.device_role) or (
@@ -444,12 +443,12 @@ class DevialetApi:
                 )
 
             response_json = json.loads(response)
+            self._is_available = True
 
             if "error" in response_json:
                 LOGGER.debug(response_json["error"])
                 return None
 
-            self._is_available = True
             return response_json
 
         except aiohttp.ClientConnectorError as conn_err:
