@@ -12,7 +12,7 @@ setup(
     author_email='',
     url='https://github.com/fwestenberg/devialet',
     download_url='https://github.com/fwestenberg/devialet/releases/latest',
-    keywords=['Reolink', 'Home-Assistant'],
+    keywords=['Devialet', 'Home-Assistant'],
     install_requires=[
         'aiohttp'
     ],
