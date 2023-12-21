@@ -6,6 +6,8 @@ setup(
     version='1.4.5',
     license='MIT',
     description='Devialet API',
+    long_description_content_type="text/markdown",
+    long_description='Devialet API',
     author='fwestenberg',
     author_email='',
     url='https://github.com/fwestenberg/devialet',
