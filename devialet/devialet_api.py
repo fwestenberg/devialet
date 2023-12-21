@@ -168,8 +168,9 @@ class DevialetApi:
             source_type = source["type"]
             device_id = source["deviceId"]
 
-            if self.device_role in SPEAKER_POSITIONS and (
-                source_type == "optical" or source_type == "opticaljack"
+            if self.device_role in SPEAKER_POSITIONS and source_type in (
+                "optical",
+                "opticaljack",
             ):
                 # Stereo devices have the role FrontLeft or FrontRight.
                 # Add a suffix to the source to recognize the device.
@@ -264,16 +265,16 @@ class DevialetApi:
                         source_type == "optical" or source_type == "opticaljack"
                     ) and self.device_role in SPEAKER_POSITIONS:
                         for role, position in SPEAKER_POSITIONS.items():
-                            if (device_id == self.device_id and role == self.device_role) or (
+                            if (
+                                device_id == self.device_id and role == self.device_role
+                            ) or (
                                 device_id != self.device_id and role != self.device_role
                             ):
                                 source_type = source_type + "_" + position
-
-                    break
+                    return source_type
         except (KeyError, TypeError):
             return None
-
-        return source_type
+        return None
 
     @property
     def night_mode(self) -> bool | None:
@@ -370,7 +371,6 @@ class DevialetApi:
 
     async def async_set_equalizer(self, preset: str) -> None:
         """Set the equalizer preset."""
-
         await self.post_request(
             UrlSuffix.EQUALIZER,
             {"preset": preset},
@@ -394,24 +394,26 @@ class DevialetApi:
             name_split = name.split("_")
 
             for role, position in SPEAKER_POSITIONS.items():
-                if position == name_split[1]:
-                    if role == self.device_role:
-                        for _source in self._sources["sources"]:
-                            if (
-                                _source["deviceId"] == self.device_id
-                                and _source["type"] == name_split[0]
-                            ):
-                                source_id = _source["sourceId"]
-                                break
-                    else:
-                        for _source in self._sources["sources"]:
-                            if (
-                                _source["deviceId"] != self.device_id
-                                and _source["type"] == name_split[0]
-                            ):
-                                source_id = _source["sourceId"]
-                                break
-                    break
+                if position != name_split[1]:
+                    continue
+
+                if role == self.device_role:
+                    for _source in self._sources["sources"]:
+                        if (
+                            _source["deviceId"] == self.device_id
+                            and _source["type"] == name_split[0]
+                        ):
+                            source_id = _source["sourceId"]
+                            break
+                else:
+                    for _source in self._sources["sources"]:
+                        if (
+                            _source["deviceId"] != self.device_id
+                            and _source["type"] == name_split[0]
+                        ):
+                            source_id = _source["sourceId"]
+                            break
+                break
         else:
             for _source in self._sources["sources"]:
                 if _source["type"] == name:
@@ -427,7 +429,6 @@ class DevialetApi:
 
     async def get_request(self, suffix=str) -> any | None:
         """Generic GET method."""
-
         url = "http://" + self._host + str(suffix)
 
         try:
@@ -469,7 +470,6 @@ class DevialetApi:
 
     async def post_request(self, suffix=str, body=str) -> any | None:
         """Generic POST method."""
-
         url = "http://" + self._host + str(suffix)
 
         try:

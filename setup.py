@@ -3,7 +3,7 @@ from distutils.core import setup
 setup(
     name='devialet',
     packages=['devialet'],
-    version='1.4.4',
+    version='1.4.5',
     license='MIT',
     description='Devialet API',
     author='fwestenberg',
