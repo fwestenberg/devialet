@@ -68,7 +68,7 @@ class DevialetApi:
             position = await self.get_request(UrlSuffix.GET_CURRENT_POSITION)
             try:
                 self._current_position = position["position"]
-                self._position_updated_at = datetime.datetime.utcnow()
+                self._position_updated_at = datetime.datetime.now(tz=datetime.timezone.utc).replace(tzinfo=None)
             except (KeyError, TypeError):
                 self._current_position = None
                 self._position_updated_at = None
