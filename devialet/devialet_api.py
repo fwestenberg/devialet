@@ -480,12 +480,12 @@ class DevialetApi:
         except aiohttp.ClientConnectorError as conn_err:
             LOGGER.debug("Host %s: Connection error %s", self._host, str(conn_err))
             self._is_available = False
+            self._upnp_device = None
             return None
         except asyncio.TimeoutError:
+            LOGGER.debug("Devialet connection timeout exception. Please check the connection")
             self._is_available = False
-            LOGGER.debug(
-                "Devialet connection timeout exception. Please check the connection"
-            )
+            self._upnp_device = None
             return None
         except (TypeError, json.JSONDecodeError):
             LOGGER.debug("Devialet: JSON error")
@@ -580,8 +580,8 @@ class DevialetApi:
 
         try:
             await set_uri.async_call(InstanceID=0, Speed=1)
-            return True
+            return
         except UpnpActionResponseError:
-            return False
+            return
         except UpnpXmlParseError:
-            return False
+            return
