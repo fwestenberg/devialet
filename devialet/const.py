@@ -27,6 +27,8 @@ SPEAKER_POSITIONS = {
     "FrontRight": "right",
 }
 
+AV_TRANSPORT = "urn:schemas-upnp-org:service:AVTransport:2"
+MEDIA_RENDERER = "urn:schemas-upnp-org:device:MediaRenderer:2"
 
 class UrlSuffix(Enum):
     GET_GENERAL_INFO = "/ipcontrol/v1/devices/current"

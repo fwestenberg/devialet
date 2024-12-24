@@ -4,16 +4,25 @@ from __future__ import annotations
 import asyncio
 import datetime
 import json
+import re
+from typing import Mapping, Union
 
 import aiohttp
+from async_upnp_client.aiohttp import AiohttpRequester
+from async_upnp_client.client_factory import UpnpFactory
+from async_upnp_client.exceptions import (UpnpActionResponseError,
+                                          UpnpXmlParseError)
+from async_upnp_client.profiles.dlna import DmrDevice
+from async_upnp_client.search import async_search
+from async_upnp_client.utils import CaseInsensitiveDict
 
-from .const import LOGGER, NORMAL_INPUTS, SPEAKER_POSITIONS, UrlSuffix
+from .const import AV_TRANSPORT, LOGGER, NORMAL_INPUTS, MEDIA_RENDERER, SPEAKER_POSITIONS, UrlSuffix
 
 
 class DevialetApi:
     """Devialet API class."""
 
-    def __init__(self, host, session):
+    def __init__(self, host:str, session:aiohttp.ClientSession):
         """Initialize the Devialet API."""
 
         self._host = host
@@ -32,27 +41,30 @@ class DevialetApi:
         self._media_duration = 0
         self._device_role = ""
         self._is_available = False
+        self._upnp_device = None
+        self._dmr_device = None
+        self._last_upnp_search: datetime.datetime = None
 
     async def async_update(self) -> bool | None:
         """Get the latest details from the device."""
         if self._general_info is None:
-            self._general_info = await self.get_request(UrlSuffix.GET_GENERAL_INFO)
+            self._general_info = await self._async_get_request(UrlSuffix.GET_GENERAL_INFO)
 
         # Without general info the device has not been online yet
         if self._general_info is None:
             return False
 
-        self._source_state = await self.get_request(UrlSuffix.GET_CURRENT_SOURCE)
-        # the source state call if enough to find out if the device is available (On or Off)
+        self._source_state = await self._async_get_request(UrlSuffix.GET_CURRENT_SOURCE)
+        # The source state call is enough to find out if the device is available (On or Off)
         if not self._is_available:
             return True
 
         if self._sources is None:
-            self._sources = await self.get_request(UrlSuffix.GET_SOURCES)
+            self._sources = await self._async_get_request(UrlSuffix.GET_SOURCES)
 
-        self._volume = await self.get_request(UrlSuffix.GET_VOLUME)
-        self._night_mode = await self.get_request(UrlSuffix.GET_NIGHT_MODE)
-        self._equalizer = await self.get_request(UrlSuffix.GET_EQUALIZER)
+        self._volume = await self._async_get_request(UrlSuffix.GET_VOLUME)
+        self._night_mode = await self._async_get_request(UrlSuffix.GET_NIGHT_MODE)
+        self._equalizer = await self._async_get_request(UrlSuffix.GET_EQUALIZER)
 
         try:
             self._media_duration = self._source_state["metadata"]["duration"]
@@ -65,7 +77,7 @@ class DevialetApi:
             self._media_duration = None
 
         if self._media_duration is not None:
-            position = await self.get_request(UrlSuffix.GET_CURRENT_POSITION)
+            position = await self._async_get_request(UrlSuffix.GET_CURRENT_POSITION)
             try:
                 self._current_position = position["position"]
                 self._position_updated_at = datetime.datetime.now(tz=datetime.timezone.utc).replace(tzinfo=None)
@@ -81,10 +93,23 @@ class DevialetApi:
         return self._is_available
 
     @property
+    def upnp_available(self) -> bool | None:
+        """Return available."""
+        return self._upnp_device is not None
+
+    @property
     def device_id(self) -> str | None:
         """Return the device id."""
         try:
             return self._general_info["deviceId"]
+        except (KeyError, TypeError):
+            return None
+
+    @property
+    def is_system_leader(self) -> bool | None:
+        """Return the boolean for system leader identification."""
+        try:
+            return self._general_info["isSystemLeader"]
         except (KeyError, TypeError):
             return None
 
@@ -190,7 +215,7 @@ class DevialetApi:
     def available_options(self) -> any | None:
         """Return the list of available options for this source."""
         try:
-            return self._source_state["availableOptions"]
+            return self._source_state["availableOperations"]
         except (KeyError, TypeError):
             return None
 
@@ -305,56 +330,57 @@ class DevialetApi:
             "equalizer": self._equalizer,
             "source_list": self.source_list,
             "source": self.source,
+            "upnp_device_info": self._upnp_device.device_info
         }
 
     async def async_volume_up(self) -> None:
         """Volume up media player."""
-        await self.post_request(UrlSuffix.VOLUME_UP, {})
+        await self._async_post_request(UrlSuffix.VOLUME_UP)
 
     async def async_volume_down(self) -> None:
         """Volume down media player."""
-        await self.post_request(UrlSuffix.VOLUME_DOWN, {})
+        await self._async_post_request(UrlSuffix.VOLUME_DOWN)
 
     async def async_set_volume_level(self, volume: float) -> None:
         """Set volume level, range 0..1."""
-        await self.post_request(
+        await self._async_post_request(
             UrlSuffix.VOLUME_SET,
-            {"volume": volume * 100},
+            json_body={"volume": volume * 100},
         )
 
     async def async_mute_volume(self, mute: bool) -> None:
         """Mute (true) or unmute (false) media player."""
         if mute:
-            await self.post_request(UrlSuffix.MUTE, {})
+            await self._async_post_request(UrlSuffix.MUTE)
         else:
-            await self.post_request(UrlSuffix.UNMUTE, {})
+            await self._async_post_request(UrlSuffix.UNMUTE)
 
     async def async_media_play(self) -> None:
         """Play media player."""
-        await self.post_request(UrlSuffix.PLAY, {})
+        await self._async_post_request(UrlSuffix.PLAY)
 
     async def async_media_pause(self) -> None:
         """Pause media player."""
-        await self.post_request(UrlSuffix.PAUSE, {})
+        await self._async_post_request(UrlSuffix.PAUSE)
 
     async def async_media_stop(self) -> None:
         """Pause media player."""
-        await self.post_request(UrlSuffix.PAUSE, {})
+        await self._async_post_request(UrlSuffix.PAUSE)
 
     async def async_media_next_track(self) -> None:
         """Send the next track command."""
-        await self.post_request(UrlSuffix.NEXT_TRACK, {})
+        await self._async_post_request(UrlSuffix.NEXT_TRACK)
 
     async def async_media_previous_track(self) -> None:
         """Send the previous track command."""
-        await self.post_request(UrlSuffix.PREVIOUS_TRACK, {})
+        await self._async_post_request(UrlSuffix.PREVIOUS_TRACK)
 
     async def async_media_seek(self, position: float) -> None:
         """Send seek command."""
 
-        await self.post_request(
+        await self._async_post_request(
             UrlSuffix.SEEK,
-            {"position": int(position)},
+            json_body={"position": int(position)},
         )
 
     async def async_set_night_mode(self, night_mode: bool) -> None:
@@ -364,21 +390,21 @@ class DevialetApi:
         else:
             mode = "off"
 
-        await self.post_request(
+        await self._async_post_request(
             UrlSuffix.NIGHT_MODE,
-            {"nightMode": mode},
+            json_body={"nightMode": mode},
         )
 
     async def async_set_equalizer(self, preset: str) -> None:
         """Set the equalizer preset."""
-        await self.post_request(
+        await self._async_post_request(
             UrlSuffix.EQUALIZER,
-            {"preset": preset},
+            json_body={"preset": preset},
         )
 
     async def async_turn_off(self) -> None:
         """Turn off media player."""
-        await self.post_request(UrlSuffix.TURN_OFF, {})
+        await self._async_post_request(UrlSuffix.TURN_OFF)
 
     async def async_select_source(self, source: str) -> None:
         """Select input source."""
@@ -423,11 +449,11 @@ class DevialetApi:
             LOGGER.error("Source %s is not available", source)
             return
 
-        await self.post_request(
-            str(UrlSuffix.SELECT_SOURCE).replace("%SOURCE_ID%", source_id), {}
+        await self._async_post_request(
+            str(UrlSuffix.SELECT_SOURCE).replace("%SOURCE_ID%", source_id)
         )
 
-    async def get_request(self, suffix=str) -> any | None:
+    async def _async_get_request(self, suffix: str) -> any | None:
         """Generic GET method."""
         url = "http://" + self._host + str(suffix)
 
@@ -468,19 +494,20 @@ class DevialetApi:
             LOGGER.debug("Devialet: unknown exception occurred")
             return None
 
-    async def post_request(self, suffix=str, body=str) -> any | None:
+    async def _async_post_request(self, suffix:str, json_body:str={}) -> bool | None:
         """Generic POST method."""
         url = "http://" + self._host + str(suffix)
 
         try:
             async with self._session.post(
-                url=url, json=body, allow_redirects=False, timeout=2
+                url=url, json=json_body, allow_redirects=False, timeout=2
             ) as response:
-                response = await response.read()
+                response_data = await response.text()
                 LOGGER.debug(
-                    "Host %s: HTTP Response data: %s",
+                    "Host %s: HTTP %s Response data: %s",
                     self._host,
-                    response,
+                    response.status,
+                    response_data,
                 )
 
             return True
@@ -490,12 +517,71 @@ class DevialetApi:
             return False
         except asyncio.TimeoutError:
             LOGGER.debug(
-                "Devialet connection timeout exception. Please check the connection"
+                "Devialet connection timeout exception, please check the connection"
             )
             return False
         except (TypeError, json.JSONDecodeError):
-            LOGGER.debug("Devialet: JSON error")
+            LOGGER.debug("Devialet: unknown response type")
             return False
         except Exception:  # pylint: disable=bare-except
             LOGGER.debug("Devialet: unknown exception occurred")
+            return False
+
+    async def _async_on_search_response(self, data: CaseInsensitiveDict) -> None:
+        """UPnP device detected."""
+        location = data['location']
+        location_regex = re.compile(f"(?<=Location:[ ])*http://{self._host}:(.*)/.*.xml", re.IGNORECASE)
+        location_result = location_regex.search(location)
+        if location_result:
+            requester = AiohttpRequester()
+            factory = UpnpFactory(requester)
+            self._upnp_device = await factory.async_create_device(location)
+            self._dmr_device = DmrDevice(self._upnp_device, None)
+
+    async def async_discover_upnp_device(self) -> None:
+        """Discover the UPnP device."""
+        if self._last_upnp_search is not None and (datetime.datetime.now() - self._last_upnp_search).total_seconds() < 60:
+            return
+        self._last_upnp_search = datetime.datetime.now()
+
+        await async_search(async_callback=self._async_on_search_response,
+                           timeout=10,
+                           search_target=MEDIA_RENDERER,
+                           source=("0.0.0.0", 0))
+        LOGGER.debug("Discovering UPnP device for %s", self._host)
+
+    async def async_play_url_source(self, media_url: str, media_title: str, meta_data: Union[None, str, Mapping] = None) -> bool:
+        """Play media uri over UPnP."""
+        if not self.upnp_available:
+            LOGGER.error("No UPnP location discovered")
+            return
+
+        service = self._upnp_device.service(AV_TRANSPORT)
+        set_uri = service.action("SetAVTransportURI")
+
+        try:
+            result = await set_uri.async_call(InstanceID=0, CurrentURI=media_url, CurrentURIMetaData=meta_data)
+            LOGGER.debug("Action result: %s", str(result))
+        except UpnpActionResponseError as a:
+            LOGGER.error("Devialet: error playing %s: %s", media_title, a.error_desc)
+        except UpnpXmlParseError as x:
+            LOGGER.error("Devialet: error playing %s %s", media_title, x.text)
+
+        await self.async_upnp_play()
+
+    async def async_upnp_play(self) -> None:
+        """Send the play command over UPnP."""
+        if not self.upnp_available:
+            LOGGER.error("No UPnP location discovered")
+            return
+
+        service = self._upnp_device.service(AV_TRANSPORT)
+        set_uri = service.action("Play")
+
+        try:
+            await set_uri.async_call(InstanceID=0, Speed=1)
+            return True
+        except UpnpActionResponseError:
+            return False
+        except UpnpXmlParseError:
             return False

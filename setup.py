@@ -3,7 +3,7 @@ from distutils.core import setup
 setup(
     name='devialet',
     packages=['devialet'],
-    version='1.4.5',
+    version='1.5.0',
     license='MIT',
     description='Devialet API',
     long_description_content_type="text/markdown",
@@ -14,7 +14,7 @@ setup(
     download_url='https://github.com/fwestenberg/devialet/releases/latest',
     keywords=['Devialet', 'Home-Assistant'],
     install_requires=[
-        'aiohttp'
+        'aiohttp', 'async_upnp_client'
     ],
     classifiers=[
         'Development Status :: 4 - Beta',
