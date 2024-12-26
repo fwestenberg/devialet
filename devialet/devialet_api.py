@@ -67,6 +67,9 @@ class DevialetApi:
         self._night_mode = await self._async_get_request(UrlSuffix.GET_NIGHT_MODE)
         self._equalizer = await self._async_get_request(UrlSuffix.GET_EQUALIZER)
 
+        if self.source == "upnp":
+            return True
+
         try:
             self._media_duration = self._source_state["metadata"]["duration"]
         except (KeyError, TypeError):
@@ -574,6 +577,7 @@ class DevialetApi:
             LOGGER.error("Error playing %s %s", media_title, x.text)
 
         await self.async_upnp_play()
+        await self._async_get_upnp_metadata(media_url) # Devialet does not support UPnP metadata
 
     async def async_upnp_play(self) -> None:
         """Send the play command over UPnP."""
@@ -591,3 +595,26 @@ class DevialetApi:
             return
         except UpnpXmlParseError:
             return
+
+    async def _async_get_upnp_metadata(self, url: str) -> any | None:
+        """Call the media URL with the HEAD method to get ICY metadata."""
+        try:
+            async with self._session.head(
+                url=url, allow_redirects=False, timeout=2, headers={"Icy-MetaData": 1}
+            ) as response:
+                LOGGER.debug(
+                    "Host %s: HTTP Response data: %s",
+                    self._host,
+                    response.headers,
+                )
+            title:str = response.headers.get("icy-name")
+            self._source_state = { "metadata": { "title": title } }
+
+        except aiohttp.ClientConnectorError:
+            return None
+        except asyncio.TimeoutError:
+            return None
+        except TypeError:
+            return None
+        except Exception:  # pylint: disable=bare-except
+            return None
