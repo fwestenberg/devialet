@@ -10,7 +10,7 @@ NORMAL_INPUTS = {
     "Digital left": "digital_left", #Arch only
     "Digital right": "digital_right", #Arch only
     "Line": "line", #Arch only
-    "Online": "upnp",
+    "UPnP": "upnp",
     "Optical": "optical", #Phantom I, Dialog (Mono)
     "Optical left": "optical_left", #Phantom I (Stereo)
     "Optical right": "optical_right", #Phantom I (Stereo)
