@@ -18,6 +18,7 @@ from async_upnp_client.utils import CaseInsensitiveDict
 
 from .const import AV_TRANSPORT, LOGGER, NORMAL_INPUTS, MEDIA_RENDERER, SPEAKER_POSITIONS, UrlSuffix
 
+UPNP_SEARCH_INTERVAL = 120
 
 class DevialetApi:
     """Devialet API class."""
@@ -183,6 +184,11 @@ class DevialetApi:
             return None
 
     @property
+    def dmr_device(self) -> DmrDevice | None:
+        """Return DMR device class."""
+        return self._dmr_device
+
+    @property
     def source_list(self) -> list | None:
         """Return the list of available input sources."""
 
@@ -212,8 +218,8 @@ class DevialetApi:
         return sorted(self._source_list)
 
     @property
-    def available_options(self) -> any | None:
-        """Return the list of available options for this source."""
+    def available_operations(self) -> any | None:
+        """Return the list of available operations for this source."""
         try:
             return self._source_state["availableOperations"]
         except (KeyError, TypeError):
@@ -265,14 +271,6 @@ class DevialetApi:
     def position_updated_at(self) -> datetime.datetime | None:
         """When was the position of the current playing media valid."""
         return self._position_updated_at
-
-    @property
-    def supported_features(self) -> any | None:
-        """Flag media player features that are supported."""
-        try:
-            return self._source_state["availableOptions"]
-        except (KeyError, TypeError):
-            return None
 
     @property
     def source(self) -> str | None:
@@ -330,7 +328,8 @@ class DevialetApi:
             "equalizer": self._equalizer,
             "source_list": self.source_list,
             "source": self.source,
-            "upnp_device_info": self._upnp_device.device_info
+            "upnp_device_type": getattr(self._upnp_device.device_info, 'device_type') if self._upnp_device else "Not available",
+            "upnp_device_url": getattr(self._upnp_device.device_info, 'url') if self._upnp_device else "Not available",
         }
 
     async def async_volume_up(self) -> None:
@@ -480,18 +479,16 @@ class DevialetApi:
         except aiohttp.ClientConnectorError as conn_err:
             LOGGER.debug("Host %s: Connection error %s", self._host, str(conn_err))
             self._is_available = False
-            self._upnp_device = None
             return None
         except asyncio.TimeoutError:
             LOGGER.debug("Devialet connection timeout exception. Please check the connection")
             self._is_available = False
-            self._upnp_device = None
             return None
         except (TypeError, json.JSONDecodeError):
-            LOGGER.debug("Devialet: JSON error")
+            LOGGER.debug("Get request: JSON error")
             return None
         except Exception:  # pylint: disable=bare-except
-            LOGGER.debug("Devialet: unknown exception occurred")
+            LOGGER.debug("Get request: unknown exception occurred")
             return None
 
     async def _async_post_request(self, suffix:str, json_body:str={}) -> bool | None:
@@ -521,10 +518,10 @@ class DevialetApi:
             )
             return False
         except (TypeError, json.JSONDecodeError):
-            LOGGER.debug("Devialet: unknown response type")
+            LOGGER.debug("Post request: unknown response type")
             return False
         except Exception:  # pylint: disable=bare-except
-            LOGGER.debug("Devialet: unknown exception occurred")
+            LOGGER.debug("Post request: unknown exception occurred")
             return False
 
     async def _async_on_search_response(self, data: CaseInsensitiveDict) -> None:
@@ -538,10 +535,19 @@ class DevialetApi:
             self._upnp_device = await factory.async_create_device(location)
             self._dmr_device = DmrDevice(self._upnp_device, None)
 
+    async def async_search_allowed(self) -> bool:
+        """Conditions to check if UPnP search is allowed."""
+        if (
+            self.is_available
+            and not self.upnp_available
+            and self.is_system_leader
+            and ( not self._last_upnp_search
+            or ( datetime.datetime.now() - self._last_upnp_search).total_seconds() >= UPNP_SEARCH_INTERVAL ) ):
+            return True
+        return False
+
     async def async_discover_upnp_device(self) -> None:
         """Discover the UPnP device."""
-        if self._last_upnp_search is not None and (datetime.datetime.now() - self._last_upnp_search).total_seconds() < 60:
-            return
         self._last_upnp_search = datetime.datetime.now()
 
         await async_search(async_callback=self._async_on_search_response,
@@ -563,9 +569,9 @@ class DevialetApi:
             result = await set_uri.async_call(InstanceID=0, CurrentURI=media_url, CurrentURIMetaData=meta_data)
             LOGGER.debug("Action result: %s", str(result))
         except UpnpActionResponseError as a:
-            LOGGER.error("Devialet: error playing %s: %s", media_title, a.error_desc)
+            LOGGER.error("Error playing %s: %s", media_title, a.error_desc)
         except UpnpXmlParseError as x:
-            LOGGER.error("Devialet: error playing %s %s", media_title, x.text)
+            LOGGER.error("Error playing %s %s", media_title, x.text)
 
         await self.async_upnp_play()
 
@@ -579,7 +585,7 @@ class DevialetApi:
         set_uri = service.action("Play")
 
         try:
-            await set_uri.async_call(InstanceID=0, Speed=1)
+            await set_uri.async_call(InstanceID=0, Speed="1")
             return
         except UpnpActionResponseError:
             return

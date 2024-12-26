@@ -16,7 +16,7 @@ async def main():
     session = async with aiohttp.ClientSession() as session:
         client = DevialetApi('192.168.1.10', session)
         await client.async_update()
-        await client.async_set_volume_level(0.2)
+        await client.async_set_volume_level(20)
         await client.async_media_next_track()
         await client.async_turn_off()
 
