@@ -571,7 +571,7 @@ class DevialetApi:
             await self.dmr_device.construct_play_media_metadata(
                 media_url=media_id,
                 media_title=media_title,
-                mime_type=mime_type
+                default_mime_type=mime_type
             )
         )
 
