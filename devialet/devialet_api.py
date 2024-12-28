@@ -5,7 +5,6 @@ import asyncio
 import datetime
 import json
 import re
-from typing import Mapping, Union
 
 import aiohttp
 from async_upnp_client.aiohttp import AiohttpRequester
@@ -559,24 +558,35 @@ class DevialetApi:
                            source=("0.0.0.0", 0))
         LOGGER.debug("Discovering UPnP device for %s", self._host)
 
-    async def async_play_url_source(self, media_url: str, media_title: str, meta_data: Union[None, str, Mapping] = None):
+    async def async_play_url_source(self, media_id: str, mime_type: str, media_title: str, default_title: bool=False) -> bool:
         """Play media uri over UPnP."""
         if not self.upnp_available:
             LOGGER.error("No UPnP location discovered")
             return
 
+        if default_title:
+            media_title = await self.async_get_upnp_media_title(media_id) or media_title
+
+        metadata = (
+            await self.dmr_device.construct_play_media_metadata(
+                media_url=media_id,
+                media_title=media_title,
+                mime_type=mime_type
+            )
+        )
+
         service = self._upnp_device.service(AV_TRANSPORT)
         set_uri = service.action("SetAVTransportURI")
 
         try:
-            result = await set_uri.async_call(InstanceID=0, CurrentURI=media_url, CurrentURIMetaData=meta_data)
+            result = await set_uri.async_call(InstanceID=0, CurrentURI=media_id, CurrentURIMetaData=metadata)
             LOGGER.debug("Action result: %s", str(result))
         except UpnpActionResponseError as a:
             LOGGER.error("Error playing %s: %s", media_title, a.error_desc)
-            return
+            return False
         except UpnpXmlParseError as x:
             LOGGER.error("Error playing %s %s", media_title, x.text)
-            return
+            return False
 
         await self.async_upnp_play()
 
@@ -608,7 +618,7 @@ class DevialetApi:
                     self._host,
                     response.headers,
                 )
-            title:str = response.headers.get("icy-name")
+            title:str = response.headers.get("icy-description") or response.headers.get("icy-name")
             return title
 
         except aiohttp.ClientConnectorError:
