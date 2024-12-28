@@ -581,6 +581,7 @@ class DevialetApi:
         try:
             result = await set_uri.async_call(InstanceID=0, CurrentURI=media_id, CurrentURIMetaData=metadata)
             LOGGER.debug("Action result: %s", str(result))
+            return True
         except UpnpActionResponseError as a:
             LOGGER.error("Error playing %s: %s", media_title, a.error_desc)
             return False
