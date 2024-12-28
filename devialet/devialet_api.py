@@ -1,4 +1,4 @@
-"""Support for Devialet Phantom speakers."""
+"""Support for Devialet Phantom speakers1."""
 from __future__ import annotations
 
 import asyncio
@@ -58,6 +58,9 @@ class DevialetApi:
         self._source_state = await self._async_get_request(UrlSuffix.GET_CURRENT_SOURCE)
         # The source state call is enough to find out if the device is available (On or Off)
         if not self._is_available:
+            # Set upnp to none, so discovery will find the new port when it's online again
+            self._upnp_device = None
+            self._dmr_device = None
             return True
 
         if self._sources is None:
@@ -66,9 +69,6 @@ class DevialetApi:
         self._volume = await self._async_get_request(UrlSuffix.GET_VOLUME)
         self._night_mode = await self._async_get_request(UrlSuffix.GET_NIGHT_MODE)
         self._equalizer = await self._async_get_request(UrlSuffix.GET_EQUALIZER)
-
-        if self.source == "upnp":
-            return True
 
         try:
             self._media_duration = self._source_state["metadata"]["duration"]
@@ -559,7 +559,7 @@ class DevialetApi:
                            source=("0.0.0.0", 0))
         LOGGER.debug("Discovering UPnP device for %s", self._host)
 
-    async def async_play_url_source(self, media_url: str, media_title: str, meta_data: Union[None, str, Mapping] = None) -> bool:
+    async def async_play_url_source(self, media_url: str, media_title: str, meta_data: Union[None, str, Mapping] = None):
         """Play media uri over UPnP."""
         if not self.upnp_available:
             LOGGER.error("No UPnP location discovered")
@@ -573,11 +573,12 @@ class DevialetApi:
             LOGGER.debug("Action result: %s", str(result))
         except UpnpActionResponseError as a:
             LOGGER.error("Error playing %s: %s", media_title, a.error_desc)
+            return
         except UpnpXmlParseError as x:
             LOGGER.error("Error playing %s %s", media_title, x.text)
+            return
 
         await self.async_upnp_play()
-        await self._async_get_upnp_metadata(media_url) # Devialet does not support UPnP metadata
 
     async def async_upnp_play(self) -> None:
         """Send the play command over UPnP."""
@@ -596,11 +597,11 @@ class DevialetApi:
         except UpnpXmlParseError:
             return
 
-    async def _async_get_upnp_metadata(self, url: str) -> any | None:
+    async def async_get_upnp_media_title(self, url: str) -> str | None:
         """Call the media URL with the HEAD method to get ICY metadata."""
         try:
             async with self._session.head(
-                url=url, allow_redirects=False, timeout=2, headers={"Icy-MetaData": 1}
+                url=url, allow_redirects=False, timeout=2, headers={"Icy-MetaData": "1"}
             ) as response:
                 LOGGER.debug(
                     "Host %s: HTTP Response data: %s",
@@ -608,13 +609,13 @@ class DevialetApi:
                     response.headers,
                 )
             title:str = response.headers.get("icy-name")
-            self._source_state = { "metadata": { "title": title } }
+            return title
 
         except aiohttp.ClientConnectorError:
-            return None
+            return
         except asyncio.TimeoutError:
-            return None
+            return
         except TypeError:
-            return None
+            return
         except Exception:  # pylint: disable=bare-except
-            return None
+            return
