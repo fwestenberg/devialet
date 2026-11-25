@@ -592,7 +592,10 @@ class DevialetApi:
                 return False
 
             LOGGER.debug("Action result: %s", str(result))
-            return await self.async_upnp_play()
+            if await self.async_upnp_play():
+                return True
+            # The UPnP renderer can report PLAYING while paused and then refuses Play (error 701)
+            return await self._async_post_request(UrlSuffix.PLAY)
 
         LOGGER.error("Error playing %s: the device could not open %s", media_title, media_id)
         return False
@@ -609,7 +612,7 @@ class DevialetApi:
         try:
             await play.async_call(InstanceID=0, Speed="1")
         except UpnpActionResponseError as a:
-            LOGGER.error("Error sending UPnP play: %s", a.error_desc)
+            LOGGER.debug("Error sending UPnP play: %s %s", a.error_code, a.error_desc)
             return False
         except UpnpXmlParseError as x:
             LOGGER.error("Error sending UPnP play: %s", x.text)
