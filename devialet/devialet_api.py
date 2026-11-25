@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 import datetime
 import json
 import re
@@ -15,9 +16,35 @@ from async_upnp_client.profiles.dlna import DmrDevice
 from async_upnp_client.search import async_search
 from async_upnp_client.utils import CaseInsensitiveDict
 
-from .const import AV_TRANSPORT, LOGGER, NORMAL_INPUTS, MEDIA_RENDERER, SPEAKER_POSITIONS, UrlSuffix
+from .const import (
+    AV_TRANSPORT,
+    LOGGER,
+    MEDIA_RENDERER,
+    NORMAL_INPUTS,
+    NOTIFICATIONS_PATH,
+    NOTIFICATIONS_RECONNECT_MAX,
+    NOTIFICATIONS_RECONNECT_MIN,
+    SPEAKER_POSITIONS,
+    UrlSuffix,
+)
 
 UPNP_SEARCH_INTERVAL = 120
+
+IPCONTROL_PREFIX = "/ipcontrol/v1"
+
+# The device pushes the position every second while playing, only report jumps (seek, new track)
+POSITION_JUMP_MS = 2000
+
+# Notification subscriptions, keyed by endpoint path, mapped to the attribute they update
+SUBSCRIPTIONS = {
+    str(UrlSuffix.GET_GENERAL_INFO).removeprefix(IPCONTROL_PREFIX): "_general_info",
+    str(UrlSuffix.GET_SOURCES).removeprefix(IPCONTROL_PREFIX): "_sources",
+    str(UrlSuffix.GET_CURRENT_SOURCE).removeprefix(IPCONTROL_PREFIX): "_source_state",
+    str(UrlSuffix.GET_VOLUME).removeprefix(IPCONTROL_PREFIX): "_volume",
+    str(UrlSuffix.GET_NIGHT_MODE).removeprefix(IPCONTROL_PREFIX): "_night_mode",
+    str(UrlSuffix.GET_EQUALIZER).removeprefix(IPCONTROL_PREFIX): "_equalizer",
+    str(UrlSuffix.GET_CURRENT_POSITION).removeprefix(IPCONTROL_PREFIX): "_position",
+}
 
 class DevialetApi:
     """Devialet API class."""
@@ -44,6 +71,7 @@ class DevialetApi:
         self._upnp_device = None
         self._dmr_device = None
         self._last_upnp_search: datetime.datetime = None
+        self._notifications_connected = False
 
     async def async_update(self) -> bool | None:
         """Get the latest details from the device."""
@@ -69,25 +97,144 @@ class DevialetApi:
         self._night_mode = await self._async_get_request(UrlSuffix.GET_NIGHT_MODE)
         self._equalizer = await self._async_get_request(UrlSuffix.GET_EQUALIZER)
 
+        self._update_media_duration()
+
+        if self._media_duration is not None:
+            self._update_position(
+                await self._async_get_request(UrlSuffix.GET_CURRENT_POSITION)
+            )
+
+        return True
+
+    def _update_media_duration(self) -> None:
+        """Derive the media duration from the current source state."""
         try:
-            self._media_duration = self._source_state["metadata"]["duration"]
+            self._media_duration = self._source_state["metadata"]["duration"] or None
         except (KeyError, TypeError):
             self._media_duration = None
+
+        if self._media_duration is None:
             self._current_position = None
             self._position_updated_at = None
 
-        if self._media_duration == 0:
-            self._media_duration = None
+    def _update_position(self, position: dict | None) -> None:
+        """Store the playback position."""
+        try:
+            self._current_position = position["position"]
+            self._position_updated_at = datetime.datetime.now(tz=datetime.timezone.utc).replace(tzinfo=None)
+        except (KeyError, TypeError):
+            self._current_position = None
+            self._position_updated_at = None
 
-        if self._media_duration is not None:
-            position = await self._async_get_request(UrlSuffix.GET_CURRENT_POSITION)
+    def _update_position_from_notification(self, position: dict | None) -> bool:
+        """Store a pushed position when it deviates from the expected position."""
+        try:
+            reported = position["position"]
+        except (KeyError, TypeError):
+            return False
+
+        if self._current_position is not None and self._position_updated_at is not None:
+            expected = self._current_position
+            if self.playing_state == "playing":
+                elapsed = datetime.datetime.now(tz=datetime.timezone.utc).replace(tzinfo=None) - self._position_updated_at
+                expected += elapsed.total_seconds() * 1000
+            if abs(reported - expected) < POSITION_JUMP_MS:
+                return False
+
+        self._update_position(position)
+        return True
+
+    @property
+    def notifications_connected(self) -> bool:
+        """Return True while push notifications are received."""
+        return self._notifications_connected
+
+    async def async_listen(
+        self,
+        on_update: Callable[[], None],
+        on_connection_change: Callable[[bool], None] | None = None,
+    ) -> None:
+        """Keep the state up to date with push notifications until cancelled.
+
+        Reconnects automatically. on_update is called after every state change,
+        on_connection_change when the notification connection goes up or down.
+        """
+        delay = NOTIFICATIONS_RECONNECT_MIN
+        while True:
             try:
-                self._current_position = position["position"]
-                self._position_updated_at = datetime.datetime.now(tz=datetime.timezone.utc).replace(tzinfo=None)
-            except (KeyError, TypeError):
-                self._current_position = None
-                self._position_updated_at = None
+                await self._async_listen_once(on_update, on_connection_change)
+            except (aiohttp.ClientError, asyncio.TimeoutError) as err:
+                LOGGER.debug("Host %s: notification connection error: %s", self._host, err)
+            finally:
+                if self._notifications_connected:
+                    self._notifications_connected = False
+                    delay = NOTIFICATIONS_RECONNECT_MIN
+                    if on_connection_change:
+                        on_connection_change(False)
 
+            await asyncio.sleep(delay)
+            delay = min(delay * 2, NOTIFICATIONS_RECONNECT_MAX)
+
+    async def _async_listen_once(
+        self,
+        on_update: Callable[[], None],
+        on_connection_change: Callable[[bool], None] | None,
+    ) -> None:
+        """Subscribe to notifications and process them until the connection closes."""
+        async with self._session.ws_connect(
+            f"ws://{self._host}{NOTIFICATIONS_PATH}", heartbeat=30, timeout=5
+        ) as websocket:
+            await websocket.send_json(
+                {
+                    "messageType": "subscriptionManagement",
+                    "messageData": {"requiredSubscriptions": list(SUBSCRIPTIONS)},
+                }
+            )
+            self._notifications_connected = True
+            if on_connection_change:
+                on_connection_change(True)
+
+            async for message in websocket:
+                if message.type is not aiohttp.WSMsgType.TEXT:
+                    continue
+                try:
+                    data = json.loads(message.data)
+                except json.JSONDecodeError:
+                    LOGGER.debug("Host %s: invalid notification: %s", self._host, message.data)
+                    continue
+                if self._handle_notification(data):
+                    on_update()
+
+    def _handle_notification(self, message: dict) -> bool:
+        """Apply a notification to the state, return True when the state changed."""
+        message_type = message.get("messageType")
+
+        if message_type == "subscriptionManagement":
+            message_data = message.get("messageData") or {}
+            if failed := message_data.get("failedSubscriptions"):
+                LOGGER.warning("Host %s: subscriptions failed: %s", self._host, failed)
+            if "error" in message:
+                LOGGER.warning("Host %s: subscription error: %s", self._host, message["error"])
+            return False
+
+        if message_type != "notification":
+            LOGGER.debug("Host %s: unexpected notification: %s", self._host, message)
+            return False
+
+        attribute = SUBSCRIPTIONS.get(message.get("subscription"))
+        if attribute is None:
+            return False
+
+        data = message.get("messageData")
+        LOGGER.debug("Host %s: notification for %s: %s", self._host, message.get("subscription"), data)
+        self._is_available = True
+
+        if attribute == "_position":
+            return self._update_position_from_notification(data)
+
+        setattr(self, attribute, data)
+        if attribute == "_source_state":
+            self._update_media_duration()
         return True
 
     @property
@@ -260,14 +407,18 @@ class DevialetApi:
             return None
 
     @property
-    def media_duration(self) -> int | None:
+    def media_duration(self) -> float | None:
         """Duration of current playing media in seconds."""
-        return self._media_duration
+        if self._media_duration is None:
+            return None
+        return self._media_duration / 1000
 
     @property
-    def current_position(self) -> int | None:
+    def current_position(self) -> float | None:
         """Position of current playing media in seconds."""
-        return self._current_position
+        if self._current_position is None:
+            return None
+        return self._current_position / 1000
 
     @property
     def position_updated_at(self) -> datetime.datetime | None:
@@ -377,11 +528,10 @@ class DevialetApi:
         await self._async_post_request(UrlSuffix.PREVIOUS_TRACK)
 
     async def async_media_seek(self, position: float) -> None:
-        """Send seek command."""
-
+        """Seek to a position in seconds."""
         await self._async_post_request(
             UrlSuffix.SEEK,
-            json_body={"position": int(position)},
+            json_body={"position": int(position * 1000)},
         )
 
     async def async_set_night_mode(self, night_mode: bool) -> None:
