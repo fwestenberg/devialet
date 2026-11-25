@@ -27,6 +27,10 @@ SPEAKER_POSITIONS = {
     "FrontRight": "right",
 }
 
+NOTIFICATIONS_PATH = "/ipcontrol/v1/notifications"
+NOTIFICATIONS_RECONNECT_MIN = 5
+NOTIFICATIONS_RECONNECT_MAX = 60
+
 AV_TRANSPORT = "urn:schemas-upnp-org:service:AVTransport:2"
 MEDIA_RENDERER = "urn:schemas-upnp-org:device:MediaRenderer:2"
 
