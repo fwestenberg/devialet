@@ -407,14 +407,18 @@ class DevialetApi:
             return None
 
     @property
-    def media_duration(self) -> int | None:
+    def media_duration(self) -> float | None:
         """Duration of current playing media in seconds."""
-        return self._media_duration
+        if self._media_duration is None:
+            return None
+        return self._media_duration / 1000
 
     @property
-    def current_position(self) -> int | None:
+    def current_position(self) -> float | None:
         """Position of current playing media in seconds."""
-        return self._current_position
+        if self._current_position is None:
+            return None
+        return self._current_position / 1000
 
     @property
     def position_updated_at(self) -> datetime.datetime | None:
@@ -524,11 +528,10 @@ class DevialetApi:
         await self._async_post_request(UrlSuffix.PREVIOUS_TRACK)
 
     async def async_media_seek(self, position: float) -> None:
-        """Send seek command."""
-
+        """Seek to a position in seconds."""
         await self._async_post_request(
             UrlSuffix.SEEK,
-            json_body={"position": int(position)},
+            json_body={"position": int(position * 1000)},
         )
 
     async def async_set_night_mode(self, night_mode: bool) -> None:
