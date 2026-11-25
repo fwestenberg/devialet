@@ -562,51 +562,59 @@ class DevialetApi:
         """Play media uri over UPnP."""
         if not self.upnp_available:
             LOGGER.error("No UPnP location discovered")
-            return
+            return False
 
         if default_title:
             media_title = await self.async_get_upnp_media_title(media_id) or media_title
 
-        metadata = (
-            await self.dmr_device.construct_play_media_metadata(
-                media_url=media_id,
-                media_title=media_title,
-                default_mime_type=mime_type
-            )
-        )
+        urls = [media_id]
+        # The Devialet UPnP renderer cannot open HTTPS (error 716), most radio streams also serve HTTP
+        if media_id.startswith("https://"):
+            urls.append("http://" + media_id.removeprefix("https://"))
 
         service = self._upnp_device.service(AV_TRANSPORT)
         set_uri = service.action("SetAVTransportURI")
 
-        try:
-            result = await set_uri.async_call(InstanceID=0, CurrentURI=media_id, CurrentURIMetaData=metadata)
+        for url in urls:
+            metadata = await self.dmr_device.construct_play_media_metadata(
+                media_url=url,
+                media_title=media_title,
+                default_mime_type=mime_type
+            )
+
+            try:
+                result = await set_uri.async_call(InstanceID=0, CurrentURI=url, CurrentURIMetaData=metadata)
+            except UpnpActionResponseError as a:
+                LOGGER.debug("Error setting %s as UPnP source: %s %s", url, a.error_code, a.error_desc)
+                continue
+            except UpnpXmlParseError as x:
+                LOGGER.error("Error playing %s %s", media_title, x.text)
+                return False
+
             LOGGER.debug("Action result: %s", str(result))
-            return True
-        except UpnpActionResponseError as a:
-            LOGGER.error("Error playing %s: %s", media_title, a.error_desc)
-            return False
-        except UpnpXmlParseError as x:
-            LOGGER.error("Error playing %s %s", media_title, x.text)
-            return False
+            return await self.async_upnp_play()
 
-        await self.async_upnp_play()
+        LOGGER.error("Error playing %s: the device could not open %s", media_title, media_id)
+        return False
 
-    async def async_upnp_play(self) -> None:
+    async def async_upnp_play(self) -> bool:
         """Send the play command over UPnP."""
         if not self.upnp_available:
             LOGGER.error("No UPnP location discovered")
-            return
+            return False
 
         service = self._upnp_device.service(AV_TRANSPORT)
-        set_uri = service.action("Play")
+        play = service.action("Play")
 
         try:
-            await set_uri.async_call(InstanceID=0, Speed="1")
-            return
-        except UpnpActionResponseError:
-            return
-        except UpnpXmlParseError:
-            return
+            await play.async_call(InstanceID=0, Speed="1")
+        except UpnpActionResponseError as a:
+            LOGGER.error("Error sending UPnP play: %s", a.error_desc)
+            return False
+        except UpnpXmlParseError as x:
+            LOGGER.error("Error sending UPnP play: %s", x.text)
+            return False
+        return True
 
     async def async_get_upnp_media_title(self, url: str) -> str | None:
         """Call the media URL with the HEAD method to get ICY metadata."""
